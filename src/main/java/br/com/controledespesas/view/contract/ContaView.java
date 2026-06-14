@@ -1,0 +1,42 @@
+package br.com.controledespesas.view.contract;
+
+import br.com.controledespesas.model.Conta;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+public interface ContaView {
+
+    void exibirContas(List<Conta> contas);
+
+    void exibirSaldos(Map<Long, BigDecimal> saldos);
+
+    void exibirCarregamento(boolean carregando);
+
+    void exibirMensagemSucesso(String mensagem);
+
+    void exibirMensagemErro(String mensagem);
+
+    void exibirEstadoVazio();
+
+    Optional<DadosContaForm> abrirFormularioCadastro();
+
+    Optional<DadosContaForm> abrirFormularioEdicao(Conta conta);
+
+    boolean confirmarExclusao(Conta conta);
+
+    boolean confirmarAlteracaoStatus(Conta conta, boolean novoStatus);
+
+    void definirAcaoNovaConta(Runnable acao);
+
+    void definirAcaoEditar(Consumer<Conta> acao);
+
+    void definirAcaoAlterarStatus(Consumer<Conta> acao);
+
+    void definirAcaoExcluir(Consumer<Conta> acao);
+
+    void limparMensagem();
+}

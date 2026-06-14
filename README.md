@@ -248,6 +248,41 @@ Limitacao atual da interface:
 - Os modulos de transacoes, contas, categorias e cofrinhos aparecem apenas como estrutura visual inicial.
 - O CRUD desses modulos sera implementado nas proximas etapas.
 
+## Gerenciamento de categorias e contas
+
+Nesta etapa, a tela principal passou a funcionar como a janela definitiva da aplicacao apos o login.
+
+Navegacao principal:
+
+- `MainFrame` agora usa `CardLayout` para alternar o conteudo sem abrir novos `JFrame`.
+- O menu lateral destaca o modulo ativo e mantem `Inicio`, `Categorias` e `Contas` acessiveis na mesma janela.
+- `Transacoes` e `Cofrinhos` continuam sinalizados como modulos futuros.
+
+Categorias:
+
+- O modulo de categorias possui listagem, cadastro, edicao, ativacao, inativacao e exclusao com confirmacao.
+- Os filtros por tipo, status e pesquisa por nome sao aplicados em memoria sobre a lista carregada pelo `CategoriaService`.
+- O `CategoriaController` usa a sessao autenticada, executa operacoes assincronas com o executor baseado em `SwingWorker` e nunca acessa DAO diretamente.
+
+Contas:
+
+- O modulo de contas possui CRUD, alteracao de status, confirmacao de exclusao e exibicao do saldo inicial e do saldo atual.
+- O saldo inicial continua persistido na tabela `contas`, enquanto o saldo atual e calculado pelo `ContaService` a partir de `saldo_inicial` e `transacoes`.
+- A listagem formata valores em Real brasileiro com `BigDecimal` e uma utilitaria `MoneyFormatter`, sem uso de `double`.
+
+Separacao de responsabilidades:
+
+- `View`: renderiza componentes Swing, formularios modais, estados vazios e indicadores de carregamento.
+- `Controller`: interpreta eventos, consulta a sessao, chama Services, trata mensagens e coordena a navegacao.
+- `Service`: aplica regras de negocio, validacoes e protecoes por `usuario_id`.
+- `DAO`: executa SQL e permanece isolado da interface grafica.
+
+Pendencias intencionais:
+
+- CRUD de transacoes.
+- CRUD de cofrinhos.
+- dashboard financeiro, graficos e relatorios.
+
 Para iniciar a aplicacao:
 
 ```bash

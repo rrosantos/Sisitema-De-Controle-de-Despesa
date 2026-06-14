@@ -9,19 +9,36 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridLayout;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class MainFrame extends JFrame implements MainView {
 
+    private static final String PAINEL_INICIO = "inicio";
+    private static final String PAINEL_CATEGORIAS = "categorias";
+    private static final String PAINEL_CONTAS = "contas";
+    private static final String PAINEL_TRANSACOES = "transacoes";
+    private static final String PAINEL_COFRINHOS = "cofrinhos";
+
     private final JLabel nomeUsuarioLabel;
     private final JLabel emailUsuarioLabel;
-    private final JLabel boasVindasLabel;
+    private final JLabel secaoAtualLabel;
     private final JButton sairButton;
+    private final JButton inicioButton;
+    private final JButton transacoesButton;
+    private final JButton contasButton;
+    private final JButton categoriasButton;
+    private final JButton cofrinhosButton;
+    private final JPanel conteudoCentralPanel;
+    private final CardLayout conteudoCentralLayout;
+    private final Map<String, JButton> menuButtons;
+    private final Map<String, JPanel> paineisRegistrados;
+    private final Map<String, String> titulosSecao;
 
     public MainFrame() {
         this("", "");
@@ -31,8 +48,18 @@ public class MainFrame extends JFrame implements MainView {
         super("Sistema de Controle de Despesas Pessoais");
         nomeUsuarioLabel = new JLabel(nomeUsuario);
         emailUsuarioLabel = new JLabel(emailUsuario);
-        boasVindasLabel = new JLabel("Bem-vinda(o)!");
+        secaoAtualLabel = new JLabel("Inicio");
         sairButton = new JButton("Sair");
+        inicioButton = criarBotaoMenu("Inicio");
+        transacoesButton = criarBotaoMenu("Transacoes");
+        contasButton = criarBotaoMenu("Contas");
+        categoriasButton = criarBotaoMenu("Categorias");
+        cofrinhosButton = criarBotaoMenu("Cofrinhos");
+        conteudoCentralLayout = new CardLayout();
+        conteudoCentralPanel = new JPanel(conteudoCentralLayout);
+        menuButtons = new LinkedHashMap<>();
+        paineisRegistrados = new LinkedHashMap<>();
+        titulosSecao = new LinkedHashMap<>();
         initialize();
         exibirUsuario(nomeUsuario, emailUsuario);
     }
@@ -44,7 +71,60 @@ public class MainFrame extends JFrame implements MainView {
 
         nomeUsuarioLabel.setText(nomeSeguro);
         emailUsuarioLabel.setText(emailSeguro);
-        boasVindasLabel.setText("Bem-vinda(o), " + nomeSeguro + ".");
+    }
+
+    @Override
+    public void adicionarPainel(String identificador, JPanel painel) {
+        if (identificador == null || identificador.isBlank() || painel == null) {
+            return;
+        }
+
+        JPanel painelAnterior = paineisRegistrados.get(identificador);
+        if (painelAnterior == painel) {
+            return;
+        }
+
+        if (painelAnterior != null) {
+            conteudoCentralPanel.remove(painelAnterior);
+        }
+
+        paineisRegistrados.put(identificador, painel);
+        conteudoCentralPanel.add(painel, identificador);
+        conteudoCentralPanel.revalidate();
+        conteudoCentralPanel.repaint();
+    }
+
+    @Override
+    public void mostrarPainel(String identificador) {
+        if (!paineisRegistrados.containsKey(identificador)) {
+            return;
+        }
+
+        conteudoCentralLayout.show(conteudoCentralPanel, identificador);
+        atualizarTituloSecao(identificador);
+    }
+
+    @Override
+    public void definirMenuAtivo(String identificador) {
+        for (Map.Entry<String, JButton> entry : menuButtons.entrySet()) {
+            aplicarEstiloMenu(entry.getValue(), entry.getKey().equals(identificador));
+        }
+        atualizarTituloSecao(identificador);
+    }
+
+    @Override
+    public void definirAcaoInicio(Runnable acao) {
+        configurarAcao(inicioButton, acao);
+    }
+
+    @Override
+    public void definirAcaoCategorias(Runnable acao) {
+        configurarAcao(categoriasButton, acao);
+    }
+
+    @Override
+    public void definirAcaoContas(Runnable acao) {
+        configurarAcao(contasButton, acao);
     }
 
     @Override
@@ -66,9 +146,12 @@ public class MainFrame extends JFrame implements MainView {
     }
 
     private void initialize() {
+        registrarTitulosSecao();
+        registrarMenuButtons();
+        configurarBotoesFuturos();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 650);
-        setMinimumSize(new Dimension(850, 550));
+        setSize(1180, 760);
+        setMinimumSize(new Dimension(980, 620));
         setLocationRelativeTo(null);
         setResizable(true);
         setContentPane(createContentPanel());
@@ -128,76 +211,124 @@ public class MainFrame extends JFrame implements MainView {
         JPanel sidebar = new JPanel();
         sidebar.setBackground(UiStyles.WHITE);
         sidebar.setBorder(UiStyles.createCardBorder());
-        sidebar.setLayout(new GridLayout(5, 1, 0, 10));
-        sidebar.setPreferredSize(new Dimension(200, 0));
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setPreferredSize(new Dimension(220, 0));
 
-        sidebar.add(createMenuButton("Inicio", true));
-        sidebar.add(createMenuButton("Transacoes", false));
-        sidebar.add(createMenuButton("Contas", false));
-        sidebar.add(createMenuButton("Categorias", false));
-        sidebar.add(createMenuButton("Cofrinhos", false));
+        sidebar.add(inicioButton);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(transacoesButton);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(contasButton);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(categoriasButton);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(cofrinhosButton);
+        sidebar.add(Box.createVerticalGlue());
         return sidebar;
     }
 
     private JPanel createMainContent() {
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setBackground(UiStyles.WHITE);
         content.setBorder(UiStyles.createCardBorder());
 
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        JPanel secaoPanel = new JPanel(new BorderLayout());
+        secaoPanel.setOpaque(false);
 
-        boasVindasLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
-        boasVindasLabel.setForeground(UiStyles.TEXT_PRIMARY);
+        secaoAtualLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
+        secaoAtualLabel.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel resumoLabel = new JLabel("Sua area financeira sera implementada nas proximas etapas.");
+        JLabel resumoLabel = new JLabel("Navegue entre os modulos sem abrir novas janelas.");
         resumoLabel.setFont(UiStyles.SUBTITLE_FONT);
         resumoLabel.setForeground(UiStyles.TEXT_SECONDARY);
 
-        JTextArea detailsArea = new JTextArea(
-                "Nesta etapa, a aplicacao ja possui autenticacao, cadastro de usuario, " +
-                "sessao compartilhada e navegacao inicial entre as telas.\n\n" +
-                "Os modulos de categorias, contas, transacoes e cofrinhos aparecerao aqui " +
-                "conforme avancarmos na interface principal."
-        );
-        detailsArea.setEditable(false);
-        detailsArea.setFocusable(false);
-        detailsArea.setLineWrap(true);
-        detailsArea.setWrapStyleWord(true);
-        detailsArea.setOpaque(false);
-        detailsArea.setForeground(UiStyles.TEXT_PRIMARY);
-        detailsArea.setFont(UiStyles.TEXT_FONT);
+        JPanel secaoTexto = new JPanel();
+        secaoTexto.setOpaque(false);
+        secaoTexto.setLayout(new BoxLayout(secaoTexto, BoxLayout.Y_AXIS));
+        secaoTexto.add(secaoAtualLabel);
+        secaoTexto.add(Box.createVerticalStrut(4));
+        secaoTexto.add(resumoLabel);
 
-        textPanel.add(boasVindasLabel);
-        textPanel.add(Box.createVerticalStrut(10));
-        textPanel.add(resumoLabel);
-        textPanel.add(Box.createVerticalStrut(22));
-        textPanel.add(detailsArea);
+        secaoPanel.add(secaoTexto, BorderLayout.WEST);
 
-        content.add(textPanel, BorderLayout.CENTER);
+        conteudoCentralPanel.setOpaque(false);
+
+        content.add(secaoPanel, BorderLayout.NORTH);
+        content.add(conteudoCentralPanel, BorderLayout.CENTER);
         return content;
     }
 
-    private JButton createMenuButton(String texto, boolean ativo) {
+    private JButton criarBotaoMenu(String texto) {
         JButton button = new JButton(texto);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFocusPainted(false);
-        button.setFont(new Font(Font.SANS_SERIF, ativo ? Font.BOLD : Font.PLAIN, 14));
         button.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
         button.setOpaque(true);
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        aplicarEstiloMenu(button, false);
+        return button;
+    }
 
-        if (ativo) {
-            button.setBackground(UiStyles.PRIMARY);
-            button.setForeground(UiStyles.WHITE);
-            button.setEnabled(false);
-        } else {
-            button.setBackground(UiStyles.BACKGROUND);
-            button.setForeground(UiStyles.TEXT_SECONDARY);
-            button.setToolTipText("Disponivel na proxima etapa");
-            button.setEnabled(false);
+    private void registrarTitulosSecao() {
+        titulosSecao.put(PAINEL_INICIO, "Inicio");
+        titulosSecao.put(PAINEL_CATEGORIAS, "Categorias");
+        titulosSecao.put(PAINEL_CONTAS, "Contas");
+        titulosSecao.put(PAINEL_TRANSACOES, "Transacoes");
+        titulosSecao.put(PAINEL_COFRINHOS, "Cofrinhos");
+    }
+
+    private void registrarMenuButtons() {
+        menuButtons.put(PAINEL_INICIO, inicioButton);
+        menuButtons.put(PAINEL_CONTAS, contasButton);
+        menuButtons.put(PAINEL_CATEGORIAS, categoriasButton);
+    }
+
+    private void configurarBotoesFuturos() {
+        transacoesButton.setEnabled(false);
+        transacoesButton.setToolTipText("Disponivel nas proximas etapas.");
+        cofrinhosButton.setEnabled(false);
+        cofrinhosButton.setToolTipText("Disponivel nas proximas etapas.");
+        aplicarEstiloPlaceholder(transacoesButton);
+        aplicarEstiloPlaceholder(cofrinhosButton);
+    }
+
+    private void atualizarTituloSecao(String identificador) {
+        secaoAtualLabel.setText(titulosSecao.getOrDefault(identificador, "Inicio"));
+    }
+
+    private void configurarAcao(JButton button, Runnable acao) {
+        for (var listener : button.getActionListeners()) {
+            button.removeActionListener(listener);
         }
 
-        return button;
+        if (acao != null) {
+            button.addActionListener(event -> acao.run());
+        }
+    }
+
+    private void aplicarEstiloMenu(JButton button, boolean ativo) {
+        if (!button.isEnabled()) {
+            aplicarEstiloPlaceholder(button);
+            return;
+        }
+
+        button.setFont(new Font(Font.SANS_SERIF, ativo ? Font.BOLD : Font.PLAIN, 14));
+        button.setBackground(ativo ? UiStyles.PRIMARY : UiStyles.BACKGROUND);
+        button.setForeground(ativo ? UiStyles.WHITE : UiStyles.TEXT_PRIMARY);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ativo ? UiStyles.PRIMARY : UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)
+        ));
+        button.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+    }
+
+    private void aplicarEstiloPlaceholder(JButton button) {
+        button.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+        button.setBackground(UiStyles.BACKGROUND);
+        button.setForeground(UiStyles.TEXT_SECONDARY);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)
+        ));
     }
 }

@@ -60,6 +60,9 @@ public class ApplicationController {
         MainController mainController = new MainController(
                 applicationContext.getAutenticacaoService(),
                 applicationContext.getSessaoUsuario(),
+                applicationContext.getCategoriaService(),
+                applicationContext.getContaService(),
+                applicationContext.getAsyncTaskExecutor(),
                 mainFrame,
                 this
         );

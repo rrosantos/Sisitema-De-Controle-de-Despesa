@@ -5,6 +5,7 @@ import br.com.controledespesas.model.Usuario;
 import br.com.controledespesas.security.PasswordHasher;
 import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.view.InicioPanel;
 import br.com.controledespesas.view.contract.MainView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,9 +13,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.swing.JPanel;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +33,12 @@ class MainControllerTest {
     private ApplicationController applicationController;
 
     @Mock
+    private CategoriaController categoriaController;
+
+    @Mock
+    private ContaController contaController;
+
+    @Mock
     private UsuarioDAO usuarioDAO;
 
     @Mock
@@ -34,31 +46,123 @@ class MainControllerTest {
 
     private SessaoUsuario sessaoUsuario;
     private AutenticacaoService autenticacaoService;
+    private InicioPanel inicioPanel;
+    private JPanel categoriaPanel;
+    private JPanel contaPanel;
 
     @BeforeEach
     void setUp() {
         sessaoUsuario = new SessaoUsuario();
         autenticacaoService = new AutenticacaoService(usuarioDAO, passwordHasher, sessaoUsuario);
+        inicioPanel = new InicioPanel();
+        categoriaPanel = new JPanel();
+        contaPanel = new JPanel();
     }
 
     @Test
-    void shouldDisplayAuthenticatedUser() {
+    void shouldDisplayAuthenticatedUserAndInitializePanels() {
         sessaoUsuario.iniciar(usuario());
         MainController mainController =
-                new MainController(autenticacaoService, sessaoUsuario, mainView, applicationController);
+                new MainController(
+                        autenticacaoService,
+                        sessaoUsuario,
+                        mainView,
+                        applicationController,
+                        inicioPanel,
+                        categoriaPanel,
+                        contaPanel,
+                        categoriaController,
+                        contaController
+                );
 
         mainController.iniciar();
 
         verify(mainView).exibirUsuario("Raissa", "raissa@example.com");
+        verify(mainView).adicionarPainel(eq(MainController.PAINEL_INICIO), eq(inicioPanel));
+        verify(mainView).adicionarPainel(eq(MainController.PAINEL_CATEGORIAS), eq(categoriaPanel));
+        verify(mainView).adicionarPainel(eq(MainController.PAINEL_CONTAS), eq(contaPanel));
+        verify(mainView).definirAcaoInicio(any(Runnable.class));
+        verify(mainView).definirAcaoCategorias(any(Runnable.class));
+        verify(mainView).definirAcaoContas(any(Runnable.class));
         verify(mainView).definirAcaoSair(any(Runnable.class));
+        verify(mainView).mostrarPainel(MainController.PAINEL_INICIO);
+        verify(mainView).definirMenuAtivo(MainController.PAINEL_INICIO);
         verify(mainView).abrir();
+        verify(categoriaController, never()).carregar();
+        verify(contaController, never()).carregar();
+    }
+
+    @Test
+    void shouldNavigateToCategoriesWithoutRegisteringPanelsAgain() {
+        sessaoUsuario.iniciar(usuario());
+        MainController mainController =
+                new MainController(
+                        autenticacaoService,
+                        sessaoUsuario,
+                        mainView,
+                        applicationController,
+                        inicioPanel,
+                        categoriaPanel,
+                        contaPanel,
+                        categoriaController,
+                        contaController
+                );
+
+        mainController.iniciar();
+        clearInvocations(mainView, categoriaController, contaController);
+
+        mainController.mostrarCategorias();
+        mainController.mostrarCategorias();
+
+        verify(mainView, times(2)).mostrarPainel(MainController.PAINEL_CATEGORIAS);
+        verify(mainView, times(2)).definirMenuAtivo(MainController.PAINEL_CATEGORIAS);
+        verify(categoriaController, times(2)).carregar();
+        verify(mainView, never()).adicionarPainel(any(), any());
+        verify(contaController, never()).carregar();
+    }
+
+    @Test
+    void shouldNavigateToAccounts() {
+        sessaoUsuario.iniciar(usuario());
+        MainController mainController =
+                new MainController(
+                        autenticacaoService,
+                        sessaoUsuario,
+                        mainView,
+                        applicationController,
+                        inicioPanel,
+                        categoriaPanel,
+                        contaPanel,
+                        categoriaController,
+                        contaController
+                );
+
+        mainController.iniciar();
+        clearInvocations(mainView, categoriaController, contaController);
+
+        mainController.mostrarContas();
+
+        verify(mainView).mostrarPainel(MainController.PAINEL_CONTAS);
+        verify(mainView).definirMenuAtivo(MainController.PAINEL_CONTAS);
+        verify(contaController).carregar();
+        verify(categoriaController, never()).carregar();
     }
 
     @Test
     void shouldLogoutAndReturnToLogin() {
         sessaoUsuario.iniciar(usuario());
         MainController mainController =
-                new MainController(autenticacaoService, sessaoUsuario, mainView, applicationController);
+                new MainController(
+                        autenticacaoService,
+                        sessaoUsuario,
+                        mainView,
+                        applicationController,
+                        inicioPanel,
+                        categoriaPanel,
+                        contaPanel,
+                        categoriaController,
+                        contaController
+                );
 
         mainController.realizarLogout();
 
@@ -70,7 +174,17 @@ class MainControllerTest {
     @Test
     void shouldRedirectToLoginWhenThereIsNoSession() {
         MainController mainController =
-                new MainController(autenticacaoService, sessaoUsuario, mainView, applicationController);
+                new MainController(
+                        autenticacaoService,
+                        sessaoUsuario,
+                        mainView,
+                        applicationController,
+                        inicioPanel,
+                        categoriaPanel,
+                        contaPanel,
+                        categoriaController,
+                        contaController
+                );
 
         mainController.iniciar();
 
