@@ -44,12 +44,12 @@ src/
 - `app`: ponto de entrada da aplicacao.
 - `config`: leitura e validacao das variaveis de ambiente.
 - `database`: conexao JDBC e scripts SQL.
-- `view`: interface Swing inicial.
+- `view`: telas Swing, paines de autenticacao e estrutura inicial da tela principal.
 - `dao`: acesso JDBC ao banco de dados.
 - `model`: entidades e enums do dominio.
 - `service`: regras de negocio, validacoes, autenticacao e coordenacao transacional.
 - `util`: calculos e funcoes auxiliares reutilizaveis.
-- `controller`: sera integrado nas proximas etapas com as telas Swing.
+- `controller`: coordenacao entre eventos da interface, Services e navegacao da aplicacao.
 
 ## Configuracao do banco
 
@@ -199,13 +199,60 @@ Cobertura de testes:
 - Foram adicionados testes unitarios para hash de senha, autenticacao, cadastro de usuario e todos os Services.
 - Os testes usam Mockito e nao dependem de MySQL ativo.
 
-Proxima etapa:
+## Interface inicial e autenticacao
 
-- Controllers Swing.
-- Tela de cadastro.
-- Tela de login.
-- Navegacao inicial.
-- Integracao da sessao com a interface grafica.
+Nesta etapa, a aplicacao ganhou o fluxo inicial completo em Swing, cobrindo inicializacao, navegacao entre login e cadastro, sessao autenticada e retorno seguro ao login no logout.
+
+Fluxo de inicializacao:
+
+- `Main` aplica o look and feel nativo.
+- A conexao com o banco e validada antes de abrir a interface.
+- `ApplicationContext` monta manualmente as dependencias compartilhadas.
+- `ApplicationController` coordena a troca entre a tela de autenticacao e a tela principal.
+
+Componentes principais:
+
+- `AuthFrame`: janela com `CardLayout` para alternar entre login e cadastro.
+- `LoginPanel`: coleta e-mail e senha e encaminha eventos ao `LoginController`.
+- `CadastroUsuarioPanel`: coleta nome, e-mail, senha e confirmacao e encaminha eventos ao `CadastroUsuarioController`.
+- `MainFrame`: apresenta o usuario autenticado, a mensagem inicial e os modulos financeiros como funcionalidades futuras.
+
+Controllers e navegacao:
+
+- `LoginController` autentica em segundo plano, limpa a senha apos cada tentativa e abre a tela principal em caso de sucesso.
+- `CadastroUsuarioController` executa o cadastro em segundo plano, retorna ao login e preenche o e-mail cadastrado quando possivel.
+- `MainController` exige sessao valida, exibe os dados do usuario e trata o logout.
+- `ApplicationController` evita janelas duplicadas e garante que apenas uma tela de autenticacao ou principal esteja aberta por vez.
+
+Sessao e seguranca:
+
+- A mesma instancia de `SessaoUsuario` e compartilhada pelo contexto e pelo `AutenticacaoService`.
+- A sessao nao e estatica e nao armazena `senhaHash`.
+- O login continua usando mensagem generica para credenciais invalidas.
+- Os campos de senha da interface sao limpos apos uso, e os arrays retornados pela view sao apagados pelos controllers.
+
+Execucao assincrona:
+
+- Login e cadastro usam `SwingWorker` por meio de um executor assincrono pequeno e especifico para nao bloquear o Event Dispatch Thread.
+- O estado visual dos botoes e restaurado ao final de cada operacao, inclusive em caso de erro.
+
+Separacao de responsabilidades:
+
+- `View`: renderiza componentes Swing e expõe apenas os dados e eventos necessarios.
+- `Controller`: interpreta eventos da interface, chama Services e decide a navegacao.
+- `Service`: aplica validacoes, autenticacao e regras de negocio.
+- `DAO`: executa SQL e mapeia persistencia.
+
+Limitacao atual da interface:
+
+- Os modulos de transacoes, contas, categorias e cofrinhos aparecem apenas como estrutura visual inicial.
+- O CRUD desses modulos sera implementado nas proximas etapas.
+
+Para iniciar a aplicacao:
+
+```bash
+mvn exec:java
+```
 
 ## Comandos
 

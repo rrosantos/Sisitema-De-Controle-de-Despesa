@@ -1,41 +1,51 @@
 package br.com.controledespesas.app;
 
+import br.com.controledespesas.controller.ApplicationController;
 import br.com.controledespesas.database.DatabaseConnection;
-import br.com.controledespesas.view.MainFrame;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class Main {
 
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+
     public static void main(String[] args) {
-        new Main().start();
+        SwingUtilities.invokeLater(() -> new Main().start());
     }
 
     private void start() {
-        boolean connectionAvailable = DatabaseConnection.testConnection();
+        applySystemLookAndFeel();
 
-        SwingUtilities.invokeLater(() -> {
-            applySystemLookAndFeel();
+        if (!DatabaseConnection.testConnection()) {
+            LOGGER.warning("Nao foi possivel estabelecer conexao inicial com o banco de dados.");
+            showConnectionErrorDialog();
+            return;
+        }
 
-            if (connectionAvailable) {
-                openMainFrame();
-            } else {
-                showConnectionErrorDialog();
-            }
-        });
-    }
-
-    private void openMainFrame() {
-        MainFrame mainFrame = new MainFrame();
-        mainFrame.setVisible(true);
+        try {
+            ApplicationContext applicationContext = new ApplicationContext();
+            ApplicationController applicationController = new ApplicationController(applicationContext);
+            applicationController.iniciar();
+        } catch (RuntimeException exception) {
+            LOGGER.log(Level.SEVERE, "Falha inesperada ao iniciar a aplicacao.", exception);
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Ocorreu um erro ao iniciar a aplicacao.",
+                    "Erro de inicializacao",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
     private void showConnectionErrorDialog() {
         JOptionPane.showMessageDialog(
                 null,
-                "Nao foi possivel conectar ao MySQL.\nVerifique o arquivo .env, o schema inicial e o status do banco.",
+                "Nao foi possivel conectar ao banco de dados.\n"
+                        + "Verifique se o MySQL esta ativo e se o arquivo .env esta configurado corretamente.",
                 "Erro de conexao",
                 JOptionPane.ERROR_MESSAGE
         );
@@ -45,7 +55,7 @@ public final class Main {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception exception) {
-            System.err.println("System look and feel could not be applied.");
+            LOGGER.log(Level.FINE, "Nao foi possivel aplicar o look and feel nativo.", exception);
         }
     }
 }

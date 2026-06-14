@@ -5,8 +5,12 @@ import br.com.controledespesas.config.AppConfig;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class DatabaseConnection {
+
+    private static final Logger LOGGER = Logger.getLogger(DatabaseConnection.class.getName());
 
     private DatabaseConnection() {
     }
@@ -24,7 +28,7 @@ public final class DatabaseConnection {
         try (Connection connection = getConnection()) {
             return connection.isValid(2);
         } catch (SQLException | IllegalStateException exception) {
-            System.err.println("Database connection test failed: " + exception.getMessage());
+            LOGGER.log(Level.WARNING, "Falha ao testar conexao com o banco de dados.", exception);
             return false;
         }
     }
