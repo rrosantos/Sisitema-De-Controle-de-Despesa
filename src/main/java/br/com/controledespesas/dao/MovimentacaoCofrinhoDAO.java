@@ -27,6 +27,13 @@ import java.util.Optional;
 public class MovimentacaoCofrinhoDAO {
 
     public Long inserir(MovimentacaoCofrinho movimentacao) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return inserir(connection, movimentacao);
+        }
+    }
+
+    public Long inserir(Connection connection, MovimentacaoCofrinho movimentacao) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(movimentacao, "Savings goal movement must not be null.");
         Objects.requireNonNull(movimentacao.getCofrinhoId(), "Savings goal ID must not be null.");
         Objects.requireNonNull(movimentacao.getUsuarioId(), "User ID must not be null.");
@@ -49,8 +56,7 @@ public class MovimentacaoCofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, movimentacao.getCofrinhoId());
             statement.setLong(2, movimentacao.getUsuarioId());
             statement.setString(3, movimentacao.getTipo().getValorBanco());
@@ -78,6 +84,13 @@ public class MovimentacaoCofrinhoDAO {
     }
 
     public Optional<MovimentacaoCofrinho> buscarPorId(Long id, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return buscarPorId(connection, id, usuarioId);
+        }
+    }
+
+    public Optional<MovimentacaoCofrinho> buscarPorId(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(id, "Movement ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -88,8 +101,7 @@ public class MovimentacaoCofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, id);
             statement.setLong(2, usuarioId);
 
@@ -133,6 +145,13 @@ public class MovimentacaoCofrinhoDAO {
     }
 
     public boolean excluir(Long movimentacaoId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return excluir(connection, movimentacaoId, usuarioId);
+        }
+    }
+
+    public boolean excluir(Connection connection, Long movimentacaoId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(movimentacaoId, "Movement ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -142,8 +161,7 @@ public class MovimentacaoCofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, movimentacaoId);
             statement.setLong(2, usuarioId);
             return statement.executeUpdate() > 0;
@@ -151,6 +169,13 @@ public class MovimentacaoCofrinhoDAO {
     }
 
     public Optional<BigDecimal> calcularValorAtual(Long cofrinhoId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return calcularValorAtual(connection, cofrinhoId, usuarioId);
+        }
+    }
+
+    public Optional<BigDecimal> calcularValorAtual(Connection connection, Long cofrinhoId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(cofrinhoId, "Savings goal ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -171,8 +196,7 @@ public class MovimentacaoCofrinhoDAO {
                 GROUP BY c.id
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, cofrinhoId);
             statement.setLong(2, usuarioId);
 

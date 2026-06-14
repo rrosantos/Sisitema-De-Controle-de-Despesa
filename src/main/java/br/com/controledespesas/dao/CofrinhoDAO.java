@@ -22,6 +22,13 @@ import java.util.Optional;
 public class CofrinhoDAO {
 
     public Long inserir(Cofrinho cofrinho) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return inserir(connection, cofrinho);
+        }
+    }
+
+    public Long inserir(Connection connection, Cofrinho cofrinho) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(cofrinho, "Savings goal must not be null.");
         Objects.requireNonNull(cofrinho.getUsuarioId(), "User ID must not be null.");
         Objects.requireNonNull(cofrinho.getValorMeta(), "Target value must not be null.");
@@ -32,8 +39,7 @@ public class CofrinhoDAO {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, cofrinho.getUsuarioId());
             statement.setString(2, normalizeRequiredText(cofrinho.getNome(), "Savings goal name"));
             statement.setString(3, normalizeOptionalText(cofrinho.getDescricao()));
@@ -59,6 +65,13 @@ public class CofrinhoDAO {
     }
 
     public Optional<Cofrinho> buscarPorId(Long id, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return buscarPorId(connection, id, usuarioId);
+        }
+    }
+
+    public Optional<Cofrinho> buscarPorId(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(id, "Savings goal ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -69,8 +82,34 @@ public class CofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, id);
+            statement.setLong(2, usuarioId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapearCofrinho(resultSet));
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<Cofrinho> buscarPorIdParaAtualizacao(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
+        Objects.requireNonNull(id, "Savings goal ID must not be null.");
+        Objects.requireNonNull(usuarioId, "User ID must not be null.");
+
+        String sql = """
+                SELECT id, usuario_id, nome, descricao, valor_meta, data_limite, status, criado_em, atualizado_em
+                FROM cofrinhos
+                WHERE id = ?
+                  AND usuario_id = ?
+                FOR UPDATE
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, id);
             statement.setLong(2, usuarioId);
 
@@ -121,6 +160,13 @@ public class CofrinhoDAO {
     }
 
     public boolean atualizar(Cofrinho cofrinho) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizar(connection, cofrinho);
+        }
+    }
+
+    public boolean atualizar(Connection connection, Cofrinho cofrinho) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(cofrinho, "Savings goal must not be null.");
         Objects.requireNonNull(cofrinho.getId(), "Savings goal ID must not be null.");
         Objects.requireNonNull(cofrinho.getUsuarioId(), "User ID must not be null.");
@@ -134,8 +180,7 @@ public class CofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, normalizeRequiredText(cofrinho.getNome(), "Savings goal name"));
             statement.setString(2, normalizeOptionalText(cofrinho.getDescricao()));
             statement.setBigDecimal(3, cofrinho.getValorMeta());
@@ -149,6 +194,14 @@ public class CofrinhoDAO {
     }
 
     public boolean atualizarStatus(Long cofrinhoId, Long usuarioId, StatusCofrinho status) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizarStatus(connection, cofrinhoId, usuarioId, status);
+        }
+    }
+
+    public boolean atualizarStatus(Connection connection, Long cofrinhoId, Long usuarioId, StatusCofrinho status)
+            throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(cofrinhoId, "Savings goal ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
         Objects.requireNonNull(status, "Savings goal status must not be null.");
@@ -160,8 +213,7 @@ public class CofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, status.getValorBanco());
             statement.setLong(2, cofrinhoId);
             statement.setLong(3, usuarioId);
@@ -171,6 +223,13 @@ public class CofrinhoDAO {
     }
 
     public boolean excluir(Long cofrinhoId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return excluir(connection, cofrinhoId, usuarioId);
+        }
+    }
+
+    public boolean excluir(Connection connection, Long cofrinhoId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(cofrinhoId, "Savings goal ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -180,8 +239,7 @@ public class CofrinhoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, cofrinhoId);
             statement.setLong(2, usuarioId);
             return statement.executeUpdate() > 0;

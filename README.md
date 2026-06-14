@@ -45,7 +45,11 @@ src/
 - `config`: leitura e validacao das variaveis de ambiente.
 - `database`: conexao JDBC e scripts SQL.
 - `view`: interface Swing inicial.
-- `controller`, `dao`, `model`, `service`, `util`: reservados para as proximas etapas.
+- `dao`: acesso JDBC ao banco de dados.
+- `model`: entidades e enums do dominio.
+- `service`: regras de negocio, validacoes, autenticacao e coordenacao transacional.
+- `util`: calculos e funcoes auxiliares reutilizaveis.
+- `controller`: sera integrado nas proximas etapas com as telas Swing.
 
 ## Configuracao do banco
 
@@ -144,10 +148,64 @@ Consultas calculadas:
 - O valor atual dos cofrinhos e calculado pela soma de depositos menos retiradas em `movimentacoes_cofrinho`.
 - O percentual de progresso do cofrinho e calculado em Java com `BigDecimal` e arredondamento explicito.
 
-Limite desta etapa:
+Limite da camada DAO:
 
-- As regras completas de negocio ainda nao ficam nos DAOs.
-- Validacoes mais ricas, hash de senha, autenticacao, operacoes compostas e transacoes JDBC multi-etapas serao tratadas na futura camada de Services.
+- As regras completas de negocio nao ficam concentradas nos DAOs.
+- Validacoes, autenticacao e operacoes compostas foram deslocadas para a camada de Services, mantendo os DAOs focados em persistencia.
+
+## Camada de servicos e regras de negocio
+
+Nesta etapa, o projeto passou a ter uma camada de Services responsavel por aplicar validacoes de dominio antes de chegar ao banco e por coordenar operacoes compostas com JDBC.
+
+Diferenca entre DAO e Service:
+
+- `DAO`: executa SQL, faz mapeamento entre `ResultSet` e Models e preserva o isolamento financeiro por `usuario_id`.
+- `Service`: valida campos obrigatorios, normaliza textos, decide regras de negocio e controla transacoes com `commit` e `rollback`.
+
+Seguranca e autenticacao:
+
+- O cadastro de usuarios utiliza BCrypt para gerar hash de senha com salt automatico.
+- Senhas nunca sao armazenadas em texto puro e nao permanecem expostas no retorno dos Services.
+- O e-mail e sempre normalizado com `trim()` e `toLowerCase(Locale.ROOT)`.
+- O login usa mensagem generica para credenciais invalidas e bloqueia usuarios inativos.
+- A sessao da aplicacao desktop fica na classe `SessaoUsuario`, sem singleton estatico e sem manter `senhaHash`.
+
+Validacoes principais:
+
+- `CategoriaService` impede categoria duplicada por nome e tipo no mesmo usuario.
+- `ContaService` impede conta duplicada por nome no mesmo usuario e valida saldo inicial com `BigDecimal`.
+- `TransacaoService` valida propriedade de categoria e conta por `id + usuario_id`, bloqueia entidades inativas em novas transacoes e exige compatibilidade entre tipo e status.
+- Receitas aceitam apenas `PENDENTE`, `RECEBIDO` ou `CANCELADO`.
+- Despesas aceitam apenas `PENDENTE`, `PAGO` ou `CANCELADO`.
+- Transacoes historicas continuam consultaveis mesmo que categoria ou conta tenha sido inativada; a troca para uma nova entidade exige que ela esteja ativa.
+
+Transacoes JDBC:
+
+- Cadastros e alteracoes de transacoes usam a mesma `Connection` para validar categoria, validar conta e persistir a operacao.
+- Depositos, retiradas e exclusoes de movimentacoes do cofrinho executam na mesma transacao JDBC.
+- Em caso de falha, o Service faz `rollback` e preserva a excecao original.
+
+Regras dos cofrinhos:
+
+- Novos cofrinhos sempre iniciam com status `EM_ANDAMENTO`.
+- O valor atual e o percentual de progresso continuam calculados, sem armazenamento redundante em tabela.
+- Retiradas nao podem ultrapassar o valor atual do cofrinho.
+- Cofrinho cancelado nao aceita novas movimentacoes.
+- Depositos que atingem a meta mudam automaticamente o status para `CONCLUIDO`.
+- Retiradas ou exclusoes que reduzem o valor abaixo da meta retornam o status para `EM_ANDAMENTO`, exceto quando o cofrinho estiver `CANCELADO`.
+
+Cobertura de testes:
+
+- Foram adicionados testes unitarios para hash de senha, autenticacao, cadastro de usuario e todos os Services.
+- Os testes usam Mockito e nao dependem de MySQL ativo.
+
+Proxima etapa:
+
+- Controllers Swing.
+- Tela de cadastro.
+- Tela de login.
+- Navegacao inicial.
+- Integracao da sessao com a interface grafica.
 
 ## Comandos
 

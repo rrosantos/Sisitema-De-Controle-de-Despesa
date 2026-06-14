@@ -19,6 +19,13 @@ import java.util.Optional;
 public class CategoriaDAO {
 
     public Long inserir(Categoria categoria) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return inserir(connection, categoria);
+        }
+    }
+
+    public Long inserir(Connection connection, Categoria categoria) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(categoria, "Category must not be null.");
         Objects.requireNonNull(categoria.getUsuarioId(), "User ID must not be null.");
         Objects.requireNonNull(categoria.getTipo(), "Category type must not be null.");
@@ -28,8 +35,7 @@ public class CategoriaDAO {
                 VALUES (?, ?, ?, ?, ?)
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, categoria.getUsuarioId());
             statement.setString(2, normalizeRequiredText(categoria.getNome(), "Category name"));
             statement.setString(3, categoria.getTipo().getValorBanco());
@@ -54,6 +60,13 @@ public class CategoriaDAO {
     }
 
     public Optional<Categoria> buscarPorId(Long id, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return buscarPorId(connection, id, usuarioId);
+        }
+    }
+
+    public Optional<Categoria> buscarPorId(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(id, "Category ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -64,8 +77,7 @@ public class CategoriaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, id);
             statement.setLong(2, usuarioId);
 
@@ -136,6 +148,13 @@ public class CategoriaDAO {
     }
 
     public boolean nomeETipoExistem(Long usuarioId, String nome, TipoCategoria tipo) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return nomeETipoExistem(connection, usuarioId, nome, tipo);
+        }
+    }
+
+    public boolean nomeETipoExistem(Connection connection, Long usuarioId, String nome, TipoCategoria tipo) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
         Objects.requireNonNull(tipo, "Category type must not be null.");
 
@@ -148,8 +167,7 @@ public class CategoriaDAO {
                 LIMIT 1
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, usuarioId);
             statement.setString(2, normalizeRequiredText(nome, "Category name"));
             statement.setString(3, tipo.getValorBanco());
@@ -160,7 +178,50 @@ public class CategoriaDAO {
         }
     }
 
+    public boolean nomeETipoExistemParaOutraCategoria(Long usuarioId, String nome, TipoCategoria tipo, Long categoriaId)
+            throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return nomeETipoExistemParaOutraCategoria(connection, usuarioId, nome, tipo, categoriaId);
+        }
+    }
+
+    public boolean nomeETipoExistemParaOutraCategoria(Connection connection, Long usuarioId, String nome,
+                                                      TipoCategoria tipo, Long categoriaId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
+        Objects.requireNonNull(usuarioId, "User ID must not be null.");
+        Objects.requireNonNull(tipo, "Category type must not be null.");
+        Objects.requireNonNull(categoriaId, "Category ID must not be null.");
+
+        String sql = """
+                SELECT 1
+                FROM categorias
+                WHERE usuario_id = ?
+                  AND nome = ?
+                  AND tipo = ?
+                  AND id <> ?
+                LIMIT 1
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, usuarioId);
+            statement.setString(2, normalizeRequiredText(nome, "Category name"));
+            statement.setString(3, tipo.getValorBanco());
+            statement.setLong(4, categoriaId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        }
+    }
+
     public boolean atualizar(Categoria categoria) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizar(connection, categoria);
+        }
+    }
+
+    public boolean atualizar(Connection connection, Categoria categoria) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(categoria, "Category must not be null.");
         Objects.requireNonNull(categoria.getId(), "Category ID must not be null.");
         Objects.requireNonNull(categoria.getUsuarioId(), "User ID must not be null.");
@@ -173,8 +234,7 @@ public class CategoriaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, normalizeRequiredText(categoria.getNome(), "Category name"));
             statement.setString(2, categoria.getTipo().getValorBanco());
             statement.setString(3, normalizeOptionalText(categoria.getDescricao()));
@@ -187,6 +247,13 @@ public class CategoriaDAO {
     }
 
     public boolean atualizarStatus(Long categoriaId, Long usuarioId, boolean ativo) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizarStatus(connection, categoriaId, usuarioId, ativo);
+        }
+    }
+
+    public boolean atualizarStatus(Connection connection, Long categoriaId, Long usuarioId, boolean ativo) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(categoriaId, "Category ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -197,8 +264,7 @@ public class CategoriaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setBoolean(1, ativo);
             statement.setLong(2, categoriaId);
             statement.setLong(3, usuarioId);
@@ -208,6 +274,13 @@ public class CategoriaDAO {
     }
 
     public boolean excluir(Long categoriaId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return excluir(connection, categoriaId, usuarioId);
+        }
+    }
+
+    public boolean excluir(Connection connection, Long categoriaId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(categoriaId, "Category ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -217,8 +290,7 @@ public class CategoriaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, categoriaId);
             statement.setLong(2, usuarioId);
             return statement.executeUpdate() > 0;

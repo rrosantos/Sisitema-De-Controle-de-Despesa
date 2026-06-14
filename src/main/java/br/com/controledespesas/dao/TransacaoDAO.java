@@ -29,6 +29,13 @@ import java.util.Optional;
 public class TransacaoDAO {
 
     public Long inserir(Transacao transacao) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return inserir(connection, transacao);
+        }
+    }
+
+    public Long inserir(Connection connection, Transacao transacao) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(transacao, "Transaction must not be null.");
         Objects.requireNonNull(transacao.getUsuarioId(), "User ID must not be null.");
         Objects.requireNonNull(transacao.getCategoriaId(), "Category ID must not be null.");
@@ -52,8 +59,7 @@ public class TransacaoDAO {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, transacao.getUsuarioId());
             statement.setLong(2, transacao.getCategoriaId());
             statement.setLong(3, transacao.getContaId());
@@ -82,6 +88,13 @@ public class TransacaoDAO {
     }
 
     public Optional<Transacao> buscarPorId(Long id, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return buscarPorId(connection, id, usuarioId);
+        }
+    }
+
+    public Optional<Transacao> buscarPorId(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(id, "Transaction ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -93,8 +106,7 @@ public class TransacaoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, id);
             statement.setLong(2, usuarioId);
 
@@ -196,6 +208,13 @@ public class TransacaoDAO {
     }
 
     public boolean atualizar(Transacao transacao) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizar(connection, transacao);
+        }
+    }
+
+    public boolean atualizar(Connection connection, Transacao transacao) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(transacao, "Transaction must not be null.");
         Objects.requireNonNull(transacao.getId(), "Transaction ID must not be null.");
         Objects.requireNonNull(transacao.getUsuarioId(), "User ID must not be null.");
@@ -220,8 +239,7 @@ public class TransacaoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, transacao.getCategoriaId());
             statement.setLong(2, transacao.getContaId());
             statement.setString(3, transacao.getTipo().getValorBanco());
@@ -238,6 +256,13 @@ public class TransacaoDAO {
     }
 
     public boolean excluir(Long transacaoId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return excluir(connection, transacaoId, usuarioId);
+        }
+    }
+
+    public boolean excluir(Connection connection, Long transacaoId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(transacaoId, "Transaction ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -247,8 +272,7 @@ public class TransacaoDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, transacaoId);
             statement.setLong(2, usuarioId);
             return statement.executeUpdate() > 0;

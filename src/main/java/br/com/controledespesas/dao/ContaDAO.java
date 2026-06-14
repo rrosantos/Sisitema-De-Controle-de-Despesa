@@ -20,6 +20,13 @@ import java.util.Optional;
 public class ContaDAO {
 
     public Long inserir(Conta conta) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return inserir(connection, conta);
+        }
+    }
+
+    public Long inserir(Connection connection, Conta conta) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(conta, "Account must not be null.");
         Objects.requireNonNull(conta.getUsuarioId(), "User ID must not be null.");
         Objects.requireNonNull(conta.getTipo(), "Account type must not be null.");
@@ -30,8 +37,7 @@ public class ContaDAO {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, conta.getUsuarioId());
             statement.setString(2, normalizeRequiredText(conta.getNome(), "Account name"));
             statement.setString(3, conta.getTipo().getValorBanco());
@@ -57,6 +63,13 @@ public class ContaDAO {
     }
 
     public Optional<Conta> buscarPorId(Long id, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return buscarPorId(connection, id, usuarioId);
+        }
+    }
+
+    public Optional<Conta> buscarPorId(Connection connection, Long id, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(id, "Account ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -67,8 +80,7 @@ public class ContaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, id);
             statement.setLong(2, usuarioId);
 
@@ -110,6 +122,13 @@ public class ContaDAO {
     }
 
     public boolean nomeExiste(Long usuarioId, String nome) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return nomeExiste(connection, usuarioId, nome);
+        }
+    }
+
+    public boolean nomeExiste(Connection connection, Long usuarioId, String nome) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
         String sql = """
@@ -120,8 +139,7 @@ public class ContaDAO {
                 LIMIT 1
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, usuarioId);
             statement.setString(2, normalizeRequiredText(nome, "Account name"));
 
@@ -131,7 +149,46 @@ public class ContaDAO {
         }
     }
 
+    public boolean nomeExisteParaOutraConta(Long usuarioId, String nome, Long contaId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return nomeExisteParaOutraConta(connection, usuarioId, nome, contaId);
+        }
+    }
+
+    public boolean nomeExisteParaOutraConta(Connection connection, Long usuarioId, String nome, Long contaId)
+            throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
+        Objects.requireNonNull(usuarioId, "User ID must not be null.");
+        Objects.requireNonNull(contaId, "Account ID must not be null.");
+
+        String sql = """
+                SELECT 1
+                FROM contas
+                WHERE usuario_id = ?
+                  AND nome = ?
+                  AND id <> ?
+                LIMIT 1
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, usuarioId);
+            statement.setString(2, normalizeRequiredText(nome, "Account name"));
+            statement.setLong(3, contaId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        }
+    }
+
     public boolean atualizar(Conta conta) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizar(connection, conta);
+        }
+    }
+
+    public boolean atualizar(Connection connection, Conta conta) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(conta, "Account must not be null.");
         Objects.requireNonNull(conta.getId(), "Account ID must not be null.");
         Objects.requireNonNull(conta.getUsuarioId(), "User ID must not be null.");
@@ -145,8 +202,7 @@ public class ContaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, normalizeRequiredText(conta.getNome(), "Account name"));
             statement.setString(2, conta.getTipo().getValorBanco());
             statement.setString(3, normalizeOptionalText(conta.getInstituicao()));
@@ -160,6 +216,13 @@ public class ContaDAO {
     }
 
     public boolean atualizarStatus(Long contaId, Long usuarioId, boolean ativo) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return atualizarStatus(connection, contaId, usuarioId, ativo);
+        }
+    }
+
+    public boolean atualizarStatus(Connection connection, Long contaId, Long usuarioId, boolean ativo) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(contaId, "Account ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -170,8 +233,7 @@ public class ContaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setBoolean(1, ativo);
             statement.setLong(2, contaId);
             statement.setLong(3, usuarioId);
@@ -181,6 +243,13 @@ public class ContaDAO {
     }
 
     public boolean excluir(Long contaId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return excluir(connection, contaId, usuarioId);
+        }
+    }
+
+    public boolean excluir(Connection connection, Long contaId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(contaId, "Account ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -190,8 +259,7 @@ public class ContaDAO {
                   AND usuario_id = ?
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, contaId);
             statement.setLong(2, usuarioId);
             return statement.executeUpdate() > 0;
@@ -199,6 +267,13 @@ public class ContaDAO {
     }
 
     public Optional<BigDecimal> calcularSaldoAtual(Long contaId, Long usuarioId) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return calcularSaldoAtual(connection, contaId, usuarioId);
+        }
+    }
+
+    public Optional<BigDecimal> calcularSaldoAtual(Connection connection, Long contaId, Long usuarioId) throws SQLException {
+        Objects.requireNonNull(connection, "Connection must not be null.");
         Objects.requireNonNull(contaId, "Account ID must not be null.");
         Objects.requireNonNull(usuarioId, "User ID must not be null.");
 
@@ -220,8 +295,7 @@ public class ContaDAO {
                 GROUP BY c.id, c.saldo_inicial
                 """;
 
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, contaId);
             statement.setLong(2, usuarioId);
 
