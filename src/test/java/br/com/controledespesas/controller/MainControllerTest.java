@@ -44,6 +44,9 @@ class MainControllerTest {
     private ContaController contaController;
 
     @Mock
+    private CofrinhoController cofrinhoController;
+
+    @Mock
     private UsuarioDAO usuarioDAO;
 
     @Mock
@@ -55,6 +58,7 @@ class MainControllerTest {
     private JPanel transacaoPanel;
     private JPanel categoriaPanel;
     private JPanel contaPanel;
+    private JPanel cofrinhoPanel;
 
     @BeforeEach
     void setUp() {
@@ -64,25 +68,13 @@ class MainControllerTest {
         transacaoPanel = new JPanel();
         categoriaPanel = new JPanel();
         contaPanel = new JPanel();
+        cofrinhoPanel = new JPanel();
     }
 
     @Test
     void shouldDisplayAuthenticatedUserAndInitializePanels() {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
 
@@ -91,10 +83,12 @@ class MainControllerTest {
         verify(mainView).adicionarPainel(eq(MainController.PAINEL_TRANSACOES), eq(transacaoPanel));
         verify(mainView).adicionarPainel(eq(MainController.PAINEL_CATEGORIAS), eq(categoriaPanel));
         verify(mainView).adicionarPainel(eq(MainController.PAINEL_CONTAS), eq(contaPanel));
+        verify(mainView).adicionarPainel(eq(MainController.PAINEL_COFRINHOS), eq(cofrinhoPanel));
         verify(mainView).definirAcaoInicio(any(Runnable.class));
         verify(mainView).definirAcaoTransacoes(any(Runnable.class));
         verify(mainView).definirAcaoCategorias(any(Runnable.class));
         verify(mainView).definirAcaoContas(any(Runnable.class));
+        verify(mainView).definirAcaoCofrinhos(any(Runnable.class));
         verify(mainView).definirAcaoSair(any(Runnable.class));
         verify(mainView).mostrarPainel(MainController.PAINEL_INICIO);
         verify(mainView).definirMenuAtivo(MainController.PAINEL_INICIO);
@@ -102,28 +96,16 @@ class MainControllerTest {
         verify(transacaoController, never()).carregar();
         verify(categoriaController, never()).carregar();
         verify(contaController, never()).carregar();
+        verify(cofrinhoController, never()).carregar();
     }
 
     @Test
     void shouldNavigateToTransactions() {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
-        clearInvocations(mainView, transacaoController, categoriaController, contaController);
+        clearInvocations(mainView, transacaoController, categoriaController, contaController, cofrinhoController);
 
         mainController.mostrarTransacoes();
 
@@ -132,28 +114,16 @@ class MainControllerTest {
         verify(transacaoController).carregar();
         verify(categoriaController, never()).carregar();
         verify(contaController, never()).carregar();
+        verify(cofrinhoController, never()).carregar();
     }
 
     @Test
     void shouldNavigateToCategoriesWithoutRegisteringPanelsAgain() {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
-        clearInvocations(mainView, categoriaController, contaController);
+        clearInvocations(mainView, categoriaController, contaController, cofrinhoController);
 
         mainController.mostrarCategorias();
         mainController.mostrarCategorias();
@@ -164,28 +134,16 @@ class MainControllerTest {
         verify(mainView, never()).adicionarPainel(any(), any());
         verify(transacaoController, never()).carregar();
         verify(contaController, never()).carregar();
+        verify(cofrinhoController, never()).carregar();
     }
 
     @Test
     void shouldNavigateToAccounts() {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
-        clearInvocations(mainView, categoriaController, contaController);
+        clearInvocations(mainView, categoriaController, contaController, cofrinhoController);
 
         mainController.mostrarContas();
 
@@ -193,28 +151,33 @@ class MainControllerTest {
         verify(mainView).definirMenuAtivo(MainController.PAINEL_CONTAS);
         verify(contaController).carregar();
         verify(categoriaController, never()).carregar();
+        verify(cofrinhoController, never()).carregar();
+    }
+
+    @Test
+    void shouldNavigateToSavingsGoals() {
+        sessaoUsuario.iniciar(usuario());
+        MainController mainController = novoMainController();
+
+        mainController.iniciar();
+        clearInvocations(mainView, categoriaController, contaController, cofrinhoController);
+
+        mainController.mostrarCofrinhos();
+
+        verify(mainView).mostrarPainel(MainController.PAINEL_COFRINHOS);
+        verify(mainView).definirMenuAtivo(MainController.PAINEL_COFRINHOS);
+        verify(cofrinhoController).carregar();
+        verify(categoriaController, never()).carregar();
+        verify(contaController, never()).carregar();
     }
 
     @Test
     void shouldNavigateToTransactionsFromInicioCard() throws Exception {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
-        clearInvocations(mainView, transacaoController, categoriaController, contaController);
+        clearInvocations(mainView, transacaoController, categoriaController, contaController, cofrinhoController);
 
         obterBotaoTransacoes(inicioPanel).doClick();
 
@@ -224,22 +187,24 @@ class MainControllerTest {
     }
 
     @Test
+    void shouldNavigateToSavingsGoalsFromInicioCard() throws Exception {
+        sessaoUsuario.iniciar(usuario());
+        MainController mainController = novoMainController();
+
+        mainController.iniciar();
+        clearInvocations(mainView, transacaoController, categoriaController, contaController, cofrinhoController);
+
+        obterBotaoCofrinhos(inicioPanel).doClick();
+
+        verify(mainView).mostrarPainel(MainController.PAINEL_COFRINHOS);
+        verify(mainView).definirMenuAtivo(MainController.PAINEL_COFRINHOS);
+        verify(cofrinhoController).carregar();
+    }
+
+    @Test
     void shouldLogoutAndReturnToLogin() {
         sessaoUsuario.iniciar(usuario());
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.realizarLogout();
 
@@ -250,20 +215,7 @@ class MainControllerTest {
 
     @Test
     void shouldRedirectToLoginWhenThereIsNoSession() {
-        MainController mainController =
-                new MainController(
-                        autenticacaoService,
-                        sessaoUsuario,
-                        mainView,
-                        applicationController,
-                        inicioPanel,
-                        transacaoPanel,
-                        categoriaPanel,
-                        contaPanel,
-                        transacaoController,
-                        categoriaController,
-                        contaController
-                );
+        MainController mainController = novoMainController();
 
         mainController.iniciar();
 
@@ -281,8 +233,32 @@ class MainControllerTest {
         return usuario;
     }
 
+    private MainController novoMainController() {
+        return new MainController(
+                autenticacaoService,
+                sessaoUsuario,
+                mainView,
+                applicationController,
+                inicioPanel,
+                transacaoPanel,
+                categoriaPanel,
+                contaPanel,
+                cofrinhoPanel,
+                transacaoController,
+                categoriaController,
+                contaController,
+                cofrinhoController
+        );
+    }
+
     private JButton obterBotaoTransacoes(InicioPanel painel) throws Exception {
         Field field = InicioPanel.class.getDeclaredField("transacoesButton");
+        field.setAccessible(true);
+        return (JButton) field.get(painel);
+    }
+
+    private JButton obterBotaoCofrinhos(InicioPanel painel) throws Exception {
+        Field field = InicioPanel.class.getDeclaredField("cofrinhosButton");
         field.setAccessible(true);
         return (JButton) field.get(painel);
     }

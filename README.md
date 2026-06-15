@@ -245,8 +245,8 @@ Separacao de responsabilidades:
 
 Limitacao atual da interface:
 
-- A interface ja entrega login, categorias, contas e transacoes na mesma janela principal.
-- `Cofrinhos`, graficos e relatorios continuam como evolucoes futuras.
+- A interface ja entrega login, categorias, contas, transacoes e cofrinhos na mesma janela principal.
+- Graficos e relatorios continuam como evolucoes futuras.
 
 ## Gerenciamento de categorias e contas
 
@@ -255,8 +255,7 @@ Nesta etapa, a tela principal passou a funcionar como a janela definitiva da apl
 Navegacao principal:
 
 - `MainFrame` agora usa `CardLayout` para alternar o conteudo sem abrir novos `JFrame`.
-- O menu lateral destaca o modulo ativo e mantem `Inicio`, `Transacoes`, `Categorias` e `Contas` acessiveis na mesma janela.
-- Apenas `Cofrinhos` permanece sinalizado como funcionalidade futura.
+- O menu lateral destaca o modulo ativo e mantem `Inicio`, `Transacoes`, `Categorias`, `Contas` e `Cofrinhos` acessiveis na mesma janela.
 
 Categorias:
 
@@ -284,7 +283,6 @@ Separacao de responsabilidades:
 
 Pendencias intencionais:
 
-- CRUD de cofrinhos.
 - dashboard financeiro, graficos e relatorios.
 
 ## Gerenciamento de transacoes
@@ -316,7 +314,32 @@ Arquitetura e execucao:
 - O modulo segue a separacao MVC ja adotada: a View apenas coleta dados e renderiza estados, o Controller coordena fluxo e os Services concentram as regras.
 - Todas as operacoes de carregar, filtrar, cadastrar, atualizar e excluir usam o `AsyncTaskExecutor` para nao bloquear o EDT.
 - O isolamento por usuario continua garantido por `usuario_id`, sem receber `usuarioId` da interface e sem acesso direto a DAO fora dos Services.
-- `Cofrinhos` continua fora do escopo funcional desta etapa.
+- As operacoes de cofrinho continuam independentes deste modulo e nao geram transacoes financeiras automaticamente.
+
+## Gerenciamento de cofrinhos
+
+Nesta etapa, o modulo `Cofrinhos` foi ativado no menu principal e no card inicial, usando o mesmo `CardLayout` da `MainFrame` sem recriar paineis, controllers ou a janela principal.
+
+Funcionalidades entregues:
+
+- Cadastro, edicao, cancelamento, reativacao e exclusao de cofrinhos com confirmacoes apropriadas.
+- Depositos, retiradas, historico de movimentacoes e exclusao de movimentacoes dentro do proprio modulo.
+- Resumo geral com `Total guardado`, metas em andamento, concluidas e canceladas, sempre calculado sobre a lista atualmente visivel.
+- Filtros por nome, status e prazo, aplicados em memoria apos o carregamento dos resumos.
+
+Regras e comportamento:
+
+- O valor atual do cofrinho continua sendo calculado por `movimentacoes_cofrinho`, sem armazenamento redundante.
+- Ao editar a meta ou reativar um cofrinho cancelado, o `CofrinhoService` recalcula o status dentro da mesma transacao JDBC.
+- Depositos que atingem a meta mudam o status para `CONCLUIDO`; retiradas ou exclusoes de movimentacao podem retornar para `EM_ANDAMENTO`.
+- Formularios e dialogs permanecem abertos em caso de erro de validacao, regra de negocio ou erro tecnico, e fecham apenas quando a operacao conclui com sucesso.
+
+Importante sobre integracao com contas:
+
+- Nesta versao, as movimentacoes dos cofrinhos nao sao vinculadas automaticamente a contas nem a transacoes financeiras.
+- Depositar em um cofrinho nao reduz saldo de conta.
+- Retirar de um cofrinho nao cria receita.
+- Qualquer integracao futura entre contas e cofrinhos exigira uma decisao de modelagem e ficou fora do escopo desta etapa.
 
 Para iniciar a aplicacao:
 

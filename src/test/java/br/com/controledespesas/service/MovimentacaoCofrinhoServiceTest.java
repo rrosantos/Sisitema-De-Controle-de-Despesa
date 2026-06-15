@@ -108,15 +108,21 @@ class MovimentacaoCofrinhoServiceTest {
         when(movimentacaoCofrinhoDAO.calcularValorAtual(connection, 30L, 1L))
                 .thenReturn(Optional.of(new BigDecimal("50.00")));
 
-        assertThrows(RegraNegocioException.class,
+        RegraNegocioException exception = assertThrows(
+                RegraNegocioException.class,
                 () -> movimentacaoCofrinhoService.retirar(
                         30L,
                         1L,
                         new BigDecimal("100.00"),
                         LocalDate.of(2026, 6, 14),
                         "Uso"
-                ));
+                )
+        );
 
+        assertEquals(
+                "O valor da retirada nao pode ser maior que o valor disponivel no cofrinho.",
+                exception.getMessage()
+        );
         verify(movimentacaoCofrinhoDAO, never()).inserir(eq(connection), any(MovimentacaoCofrinho.class));
     }
 

@@ -17,6 +17,7 @@ public class InicioPanel extends JPanel {
     private final JButton transacoesButton;
     private final JButton categoriasButton;
     private final JButton contasButton;
+    private final JButton cofrinhosButton;
 
     public InicioPanel() {
         setLayout(new BorderLayout(24, 24));
@@ -26,6 +27,7 @@ public class InicioPanel extends JPanel {
         transacoesButton = new JButton("Abrir transacoes");
         categoriasButton = new JButton("Abrir categorias");
         contasButton = new JButton("Abrir contas");
+        cofrinhosButton = new JButton("Abrir cofrinhos");
 
         add(criarCabecalho(), BorderLayout.NORTH);
         add(criarCards(), BorderLayout.CENTER);
@@ -66,6 +68,16 @@ public class InicioPanel extends JPanel {
         }
     }
 
+    public void definirAcaoCofrinhos(Runnable acao) {
+        for (var listener : cofrinhosButton.getActionListeners()) {
+            cofrinhosButton.removeActionListener(listener);
+        }
+
+        if (acao != null) {
+            cofrinhosButton.addActionListener(event -> acao.run());
+        }
+    }
+
     private JPanel criarCabecalho() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -79,8 +91,7 @@ public class InicioPanel extends JPanel {
         subtitulo.setForeground(UiStyles.TEXT_SECONDARY);
 
         JTextArea texto = new JTextArea(
-                "Use os atalhos abaixo para navegar entre os modulos ja disponiveis e acompanhar seu controle financeiro. " +
-                        "O modulo de cofrinhos continua planejado para as proximas etapas."
+                "Use os atalhos abaixo para navegar entre os modulos ja disponiveis e acompanhar seu controle financeiro e suas metas."
         );
         texto.setEditable(false);
         texto.setFocusable(false);
@@ -125,10 +136,10 @@ public class InicioPanel extends JPanel {
         ));
         cards.add(criarCard(
                 "Cofrinhos",
-                "Metas e progresso visual chegarao nas proximas etapas.",
-                "Disponivel na proxima etapa",
-                null,
-                false
+                "Crie metas, acompanhe progresso, registre depositos e retiradas e consulte o historico.",
+                "Abrir cofrinhos",
+                cofrinhosButton,
+                true
         ));
 
         return cards;

@@ -1,7 +1,9 @@
 package br.com.controledespesas.view;
 
+import br.com.controledespesas.model.StatusCofrinho;
 import br.com.controledespesas.model.TipoCategoria;
 import br.com.controledespesas.model.TipoConta;
+import br.com.controledespesas.model.TipoMovimentacaoCofrinho;
 import br.com.controledespesas.model.TipoTransacao;
 import br.com.controledespesas.model.StatusTransacao;
 
@@ -58,6 +60,29 @@ final class ViewFormatters {
             case PAGO -> "Pago";
             case RECEBIDO -> "Recebido";
             case CANCELADO -> "Cancelado";
+        };
+    }
+
+    static String formatStatusCofrinho(StatusCofrinho statusCofrinho) {
+        if (statusCofrinho == null) {
+            return DASH;
+        }
+
+        return switch (statusCofrinho) {
+            case EM_ANDAMENTO -> "Em andamento";
+            case CONCLUIDO -> "Concluido";
+            case CANCELADO -> "Cancelado";
+        };
+    }
+
+    static String formatTipoMovimentacaoCofrinho(TipoMovimentacaoCofrinho tipoMovimentacao) {
+        if (tipoMovimentacao == null) {
+            return DASH;
+        }
+
+        return switch (tipoMovimentacao) {
+            case DEPOSITO -> "Deposito";
+            case RETIRADA -> "Retirada";
         };
     }
 

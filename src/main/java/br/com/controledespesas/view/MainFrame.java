@@ -133,6 +133,11 @@ public class MainFrame extends JFrame implements MainView {
     }
 
     @Override
+    public void definirAcaoCofrinhos(Runnable acao) {
+        configurarAcao(cofrinhosButton, acao);
+    }
+
+    @Override
     public void definirAcaoSair(Runnable action) {
         for (var listener : sairButton.getActionListeners()) {
             sairButton.removeActionListener(listener);
@@ -153,7 +158,6 @@ public class MainFrame extends JFrame implements MainView {
     private void initialize() {
         registrarTitulosSecao();
         registrarMenuButtons();
-        configurarBotoesFuturos();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 760);
         setMinimumSize(new Dimension(980, 620));
@@ -287,12 +291,7 @@ public class MainFrame extends JFrame implements MainView {
         menuButtons.put(PAINEL_TRANSACOES, transacoesButton);
         menuButtons.put(PAINEL_CONTAS, contasButton);
         menuButtons.put(PAINEL_CATEGORIAS, categoriasButton);
-    }
-
-    private void configurarBotoesFuturos() {
-        cofrinhosButton.setEnabled(false);
-        cofrinhosButton.setToolTipText("Disponivel nas proximas etapas.");
-        aplicarEstiloPlaceholder(cofrinhosButton);
+        menuButtons.put(PAINEL_COFRINHOS, cofrinhosButton);
     }
 
     private void atualizarTituloSecao(String identificador) {

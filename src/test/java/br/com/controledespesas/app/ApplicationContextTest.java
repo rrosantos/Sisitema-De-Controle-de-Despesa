@@ -24,6 +24,10 @@ class ApplicationContextTest {
 
         assertNotNull(applicationContext.getAsyncTaskExecutor());
         assertNotNull(applicationContext.getTransacaoService());
+        assertNotNull(applicationContext.getCofrinhoService());
+        assertNotNull(applicationContext.getMovimentacaoCofrinhoService());
+        assertNotNull(applicationContext.getCofrinhoDAO());
+        assertNotNull(applicationContext.getMovimentacaoCofrinhoDAO());
         assertSame(sessaoUsuario, sessionInsideService);
     }
 }

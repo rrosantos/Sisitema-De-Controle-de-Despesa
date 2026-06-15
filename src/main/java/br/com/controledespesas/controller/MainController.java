@@ -4,9 +4,12 @@ import br.com.controledespesas.exception.AutenticacaoException;
 import br.com.controledespesas.model.Usuario;
 import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.service.CategoriaService;
+import br.com.controledespesas.service.CofrinhoService;
 import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.service.MovimentacaoCofrinhoService;
 import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.view.CofrinhoPanel;
 import br.com.controledespesas.view.CategoriaPanel;
 import br.com.controledespesas.view.ContaPanel;
 import br.com.controledespesas.view.InicioPanel;
@@ -25,6 +28,7 @@ public class MainController {
     static final String PAINEL_TRANSACOES = "transacoes";
     static final String PAINEL_CATEGORIAS = "categorias";
     static final String PAINEL_CONTAS = "contas";
+    static final String PAINEL_COFRINHOS = "cofrinhos";
 
     private final AutenticacaoService autenticacaoService;
     private final SessaoUsuario sessaoUsuario;
@@ -34,14 +38,17 @@ public class MainController {
     private final JPanel transacaoPanel;
     private final JPanel categoriaPanel;
     private final JPanel contaPanel;
+    private final JPanel cofrinhoPanel;
     private final TransacaoController transacaoController;
     private final CategoriaController categoriaController;
     private final ContaController contaController;
+    private final CofrinhoController cofrinhoController;
 
     private boolean componentesRegistrados;
 
     public MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
                           TransacaoService transacaoService, CategoriaService categoriaService, ContaService contaService,
+                          CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
                           AsyncTaskExecutor asyncTaskExecutor, MainView mainView,
                           ApplicationController applicationController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
@@ -52,6 +59,8 @@ public class MainController {
         Objects.requireNonNull(transacaoService, "transacaoService nao pode ser nulo.");
         Objects.requireNonNull(categoriaService, "categoriaService nao pode ser nulo.");
         Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
+        Objects.requireNonNull(cofrinhoService, "cofrinhoService nao pode ser nulo.");
+        Objects.requireNonNull(movimentacaoCofrinhoService, "movimentacaoCofrinhoService nao pode ser nulo.");
         Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
 
         this.inicioPanel = new InicioPanel();
@@ -76,13 +85,24 @@ public class MainController {
         this.contaPanel = contaPanelConcreto;
         this.contaController =
                 new ContaController(contaService, sessaoUsuario, contaPanelConcreto, asyncTaskExecutor);
+
+        CofrinhoPanel cofrinhoPanelConcreto = new CofrinhoPanel();
+        this.cofrinhoPanel = cofrinhoPanelConcreto;
+        this.cofrinhoController = new CofrinhoController(
+                cofrinhoService,
+                movimentacaoCofrinhoService,
+                sessaoUsuario,
+                cofrinhoPanelConcreto,
+                asyncTaskExecutor
+        );
     }
 
     MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
                    MainView mainView, ApplicationController applicationController,
                    InicioPanel inicioPanel, JPanel transacaoPanel, JPanel categoriaPanel, JPanel contaPanel,
+                   JPanel cofrinhoPanel,
                    TransacaoController transacaoController, CategoriaController categoriaController,
-                   ContaController contaController) {
+                   ContaController contaController, CofrinhoController cofrinhoController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.mainView = Objects.requireNonNull(mainView, "mainView nao pode ser nulo.");
@@ -92,12 +112,14 @@ public class MainController {
         this.transacaoPanel = Objects.requireNonNull(transacaoPanel, "transacaoPanel nao pode ser nulo.");
         this.categoriaPanel = Objects.requireNonNull(categoriaPanel, "categoriaPanel nao pode ser nulo.");
         this.contaPanel = Objects.requireNonNull(contaPanel, "contaPanel nao pode ser nulo.");
+        this.cofrinhoPanel = Objects.requireNonNull(cofrinhoPanel, "cofrinhoPanel nao pode ser nulo.");
         this.transacaoController = Objects.requireNonNull(
                 transacaoController,
                 "transacaoController nao pode ser nulo."
         );
         this.categoriaController = Objects.requireNonNull(categoriaController, "categoriaController nao pode ser nulo.");
         this.contaController = Objects.requireNonNull(contaController, "contaController nao pode ser nulo.");
+        this.cofrinhoController = Objects.requireNonNull(cofrinhoController, "cofrinhoController nao pode ser nulo.");
     }
 
     public void iniciar() {
@@ -152,6 +174,16 @@ public class MainController {
         contaController.carregar();
     }
 
+    public void mostrarCofrinhos() {
+        if (exigirUsuarioAtual() == null) {
+            return;
+        }
+
+        mainView.mostrarPainel(PAINEL_COFRINHOS);
+        mainView.definirMenuAtivo(PAINEL_COFRINHOS);
+        cofrinhoController.carregar();
+    }
+
     public void realizarLogout() {
         autenticacaoService.sair();
         mainView.fechar();
@@ -170,14 +202,17 @@ public class MainController {
         mainView.adicionarPainel(PAINEL_TRANSACOES, transacaoPanel);
         mainView.adicionarPainel(PAINEL_CATEGORIAS, categoriaPanel);
         mainView.adicionarPainel(PAINEL_CONTAS, contaPanel);
+        mainView.adicionarPainel(PAINEL_COFRINHOS, cofrinhoPanel);
         mainView.definirAcaoInicio(this::mostrarInicio);
         mainView.definirAcaoTransacoes(this::mostrarTransacoes);
         mainView.definirAcaoCategorias(this::mostrarCategorias);
         mainView.definirAcaoContas(this::mostrarContas);
+        mainView.definirAcaoCofrinhos(this::mostrarCofrinhos);
         mainView.definirAcaoSair(this::realizarLogout);
         inicioPanel.definirAcaoTransacoes(this::mostrarTransacoes);
         inicioPanel.definirAcaoCategorias(this::mostrarCategorias);
         inicioPanel.definirAcaoContas(this::mostrarContas);
+        inicioPanel.definirAcaoCofrinhos(this::mostrarCofrinhos);
         componentesRegistrados = true;
     }
 

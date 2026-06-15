@@ -148,7 +148,9 @@ public class MovimentacaoCofrinhoService {
 
                 if (tipoMovimentacao == TipoMovimentacaoCofrinho.RETIRADA
                         && valorNormalizado.compareTo(valorAtual) > 0) {
-                    throw new RegraNegocioException("A retirada nao pode ser maior que o valor atual do cofrinho.");
+                    throw new RegraNegocioException(
+                            "O valor da retirada nao pode ser maior que o valor disponivel no cofrinho."
+                    );
                 }
 
                 MovimentacaoCofrinho movimentacao = new MovimentacaoCofrinho();

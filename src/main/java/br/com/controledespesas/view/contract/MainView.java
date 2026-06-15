@@ -20,6 +20,8 @@ public interface MainView {
 
     void definirAcaoContas(Runnable acao);
 
+    void definirAcaoCofrinhos(Runnable acao);
+
     void definirAcaoSair(Runnable action);
 
     void abrir();
