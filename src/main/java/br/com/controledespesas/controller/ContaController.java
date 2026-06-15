@@ -23,6 +23,8 @@ public class ContaController {
     private static final Logger LOGGER = Logger.getLogger(ContaController.class.getName());
     private static final String MENSAGEM_ERRO_TECNICO =
             "Nao foi possivel acessar as contas. Tente novamente.";
+    private static final String MENSAGEM_ERRO_SALVAR =
+            "Nao foi possivel salvar a conta. Tente novamente.";
     private static final String MENSAGEM_EXCLUSAO_BLOQUEADA =
             "A conta nao pode ser excluida porque possui transacoes vinculadas. Voce pode inativa-la.";
     private static final String MENSAGEM_CADASTRO_SUCESSO = "Conta cadastrada com sucesso.";
@@ -51,8 +53,8 @@ public class ContaController {
     }
 
     public void novaConta() {
-        contaView.abrirFormularioCadastro().ifPresent(dados ->
-                executarOperacao(() -> cadastrarConta(dados), true));
+        contaView.limparMensagem();
+        contaView.abrirFormularioCadastro(dados -> executarOperacaoFormulario(() -> cadastrarConta(dados)));
     }
 
     public void editar(Conta conta) {
@@ -60,8 +62,11 @@ public class ContaController {
             return;
         }
 
-        contaView.abrirFormularioEdicao(conta).ifPresent(dados ->
-                executarOperacao(() -> atualizarConta(conta, dados), true));
+        contaView.limparMensagem();
+        contaView.abrirFormularioEdicao(
+                conta,
+                dados -> executarOperacaoFormulario(() -> atualizarConta(conta, dados))
+        );
     }
 
     public void alterarStatus(Conta conta) {
@@ -101,7 +106,20 @@ public class ContaController {
         asyncTaskExecutor.execute(
                 operacao,
                 this::aplicarResultado,
-                this::tratarErro,
+                this::tratarErroPainel,
+                () -> contaView.exibirCarregamento(false)
+        );
+    }
+
+    private void executarOperacaoFormulario(Callable<ContaResultado> operacao) {
+        contaView.exibirCarregamento(true);
+        asyncTaskExecutor.execute(
+                operacao,
+                resultado -> {
+                    contaView.fecharFormulario();
+                    aplicarResultado(resultado);
+                },
+                this::tratarErroFormulario,
                 () -> contaView.exibirCarregamento(false)
         );
     }
@@ -177,7 +195,7 @@ public class ContaController {
         }
     }
 
-    private void tratarErro(Throwable throwable) {
+    private void tratarErroPainel(Throwable throwable) {
         if (throwable instanceof ValidacaoException || throwable instanceof RegraNegocioException) {
             contaView.exibirMensagemErro(mapearMensagemNegocio(throwable.getMessage()));
             return;
@@ -191,6 +209,22 @@ public class ContaController {
 
         LOGGER.log(Level.SEVERE, "Erro inesperado no modulo de contas.", throwable);
         contaView.exibirMensagemErro(MENSAGEM_ERRO_TECNICO);
+    }
+
+    private void tratarErroFormulario(Throwable throwable) {
+        if (throwable instanceof ValidacaoException || throwable instanceof RegraNegocioException) {
+            contaView.exibirErroFormulario(mapearMensagemNegocio(throwable.getMessage()));
+            return;
+        }
+
+        if (throwable instanceof SQLException) {
+            LOGGER.log(Level.WARNING, "Falha tecnica ao salvar conta.", throwable);
+            contaView.exibirErroFormulario(MENSAGEM_ERRO_SALVAR);
+            return;
+        }
+
+        LOGGER.log(Level.SEVERE, "Erro inesperado ao salvar conta.", throwable);
+        contaView.exibirErroFormulario(MENSAGEM_ERRO_SALVAR);
     }
 
     private String mapearMensagemNegocio(String mensagemOriginal) {

@@ -5,7 +5,6 @@ import br.com.controledespesas.model.Conta;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface ContaView {
@@ -22,9 +21,13 @@ public interface ContaView {
 
     void exibirEstadoVazio();
 
-    Optional<DadosContaForm> abrirFormularioCadastro();
+    void abrirFormularioCadastro(Consumer<DadosContaForm> aoSalvar);
 
-    Optional<DadosContaForm> abrirFormularioEdicao(Conta conta);
+    void abrirFormularioEdicao(Conta conta, Consumer<DadosContaForm> aoSalvar);
+
+    void fecharFormulario();
+
+    void exibirErroFormulario(String mensagem);
 
     boolean confirmarExclusao(Conta conta);
 

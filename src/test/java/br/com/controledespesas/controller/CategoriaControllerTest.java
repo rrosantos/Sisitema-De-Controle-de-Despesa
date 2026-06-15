@@ -17,11 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -81,7 +82,11 @@ class CategoriaControllerTest {
     void shouldCreateCategoryWhenFormIsConfirmed() throws Exception {
         DadosCategoriaForm dados = new DadosCategoriaForm("Mercado", TipoCategoria.DESPESA, "Compras do mes");
         Categoria categoria = categoria(10L, "Mercado", TipoCategoria.DESPESA, true);
-        when(categoriaView.abrirFormularioCadastro()).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosCategoriaForm> consumer = invocation.getArgument(0);
+            consumer.accept(dados);
+            return null;
+        }).when(categoriaView).abrirFormularioCadastro(any());
         when(categoriaService.cadastrar(1L, "Mercado", TipoCategoria.DESPESA, "Compras do mes")).thenReturn(categoria);
         when(categoriaService.listarPorUsuario(1L)).thenReturn(List.of(categoria));
 
@@ -89,39 +94,54 @@ class CategoriaControllerTest {
 
         verify(categoriaService).cadastrar(1L, "Mercado", TipoCategoria.DESPESA, "Compras do mes");
         verify(categoriaService).listarPorUsuario(1L);
+        verify(categoriaView).fecharFormulario();
         verify(categoriaView).exibirMensagemSucesso("Categoria cadastrada com sucesso.");
     }
 
     @Test
-    void shouldShowValidationErrorWhenCreatingCategoryFails() throws Exception {
+    void shouldKeepFormOpenWhenCategoryCreationValidationFails() throws Exception {
         DadosCategoriaForm dados = new DadosCategoriaForm("", TipoCategoria.RECEITA, null);
-        when(categoriaView.abrirFormularioCadastro()).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosCategoriaForm> consumer = invocation.getArgument(0);
+            consumer.accept(dados);
+            return null;
+        }).when(categoriaView).abrirFormularioCadastro(any());
         when(categoriaService.cadastrar(1L, "", TipoCategoria.RECEITA, null))
                 .thenThrow(new ValidacaoException("Nome da categoria e obrigatorio."));
 
         categoriaController.novaCategoria();
 
-        verify(categoriaView).exibirMensagemErro("Nome da categoria e obrigatorio.");
+        verify(categoriaView).exibirErroFormulario("Nome da categoria e obrigatorio.");
+        verify(categoriaView, never()).fecharFormulario();
         verify(categoriaView).exibirCarregamento(false);
     }
 
     @Test
-    void shouldShowBusinessErrorWhenCategoryIsDuplicated() throws Exception {
+    void shouldKeepFormOpenWhenCategoryIsDuplicated() throws Exception {
         DadosCategoriaForm dados = new DadosCategoriaForm("Salario", TipoCategoria.RECEITA, null);
-        when(categoriaView.abrirFormularioCadastro()).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosCategoriaForm> consumer = invocation.getArgument(0);
+            consumer.accept(dados);
+            return null;
+        }).when(categoriaView).abrirFormularioCadastro(any());
         when(categoriaService.cadastrar(1L, "Salario", TipoCategoria.RECEITA, null))
                 .thenThrow(new RegraNegocioException("Ja existe uma categoria com este nome e tipo."));
 
         categoriaController.novaCategoria();
 
-        verify(categoriaView).exibirMensagemErro("Ja existe uma categoria com este nome e tipo.");
+        verify(categoriaView).exibirErroFormulario("Ja existe uma categoria com este nome e tipo.");
+        verify(categoriaView, never()).fecharFormulario();
     }
 
     @Test
     void shouldEditCategory() throws Exception {
         Categoria categoria = categoria(15L, "Lazer", TipoCategoria.DESPESA, true);
         DadosCategoriaForm dados = new DadosCategoriaForm("Lazer e viagens", TipoCategoria.DESPESA, "Passeios");
-        when(categoriaView.abrirFormularioEdicao(categoria)).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosCategoriaForm> consumer = invocation.getArgument(1);
+            consumer.accept(dados);
+            return null;
+        }).when(categoriaView).abrirFormularioEdicao(eq(categoria), any());
         when(categoriaService.atualizar(15L, 1L, "Lazer e viagens", TipoCategoria.DESPESA, "Passeios"))
                 .thenReturn(categoria);
         when(categoriaService.listarPorUsuario(1L)).thenReturn(List.of(categoria));
@@ -129,7 +149,26 @@ class CategoriaControllerTest {
         categoriaController.editar(categoria);
 
         verify(categoriaService).atualizar(15L, 1L, "Lazer e viagens", TipoCategoria.DESPESA, "Passeios");
+        verify(categoriaView).fecharFormulario();
         verify(categoriaView).exibirMensagemSucesso("Categoria atualizada com sucesso.");
+    }
+
+    @Test
+    void shouldKeepFormOpenWhenCategoryEditionFails() throws Exception {
+        Categoria categoria = categoria(15L, "Lazer", TipoCategoria.DESPESA, true);
+        DadosCategoriaForm dados = new DadosCategoriaForm("Lazer", TipoCategoria.DESPESA, "Passeios");
+        doAnswer(invocation -> {
+            Consumer<DadosCategoriaForm> consumer = invocation.getArgument(1);
+            consumer.accept(dados);
+            return null;
+        }).when(categoriaView).abrirFormularioEdicao(eq(categoria), any());
+        when(categoriaService.atualizar(15L, 1L, "Lazer", TipoCategoria.DESPESA, "Passeios"))
+                .thenThrow(new RegraNegocioException("Ja existe uma categoria com este nome e tipo."));
+
+        categoriaController.editar(categoria);
+
+        verify(categoriaView).exibirErroFormulario("Ja existe uma categoria com este nome e tipo.");
+        verify(categoriaView, never()).fecharFormulario();
     }
 
     @Test

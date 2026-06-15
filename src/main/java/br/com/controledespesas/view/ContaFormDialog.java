@@ -21,8 +21,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Window;
 import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class ContaFormDialog extends JDialog {
 
@@ -32,37 +34,43 @@ public class ContaFormDialog extends JDialog {
     private final JTextField saldoInicialField;
     private final JLabel mensagemLabel;
     private final MoneyFormatter moneyFormatter;
+    private final JButton cancelarButton;
+    private final JButton salvarButton;
+    private final Consumer<DadosContaForm> aoSalvar;
 
-    private DadosContaForm resultado;
+    private boolean processando;
 
-    private ContaFormDialog(Window owner, String titulo, DadosContaForm dadosIniciais, MoneyFormatter moneyFormatter) {
+    ContaFormDialog(Window owner, String titulo, DadosContaForm dadosIniciais, MoneyFormatter moneyFormatter,
+                    Consumer<DadosContaForm> aoSalvar) {
         super(owner, titulo, ModalityType.APPLICATION_MODAL);
         this.moneyFormatter = Objects.requireNonNull(moneyFormatter, "moneyFormatter nao pode ser nulo.");
+        this.aoSalvar = Objects.requireNonNull(aoSalvar, "aoSalvar nao pode ser nulo.");
         nomeField = new JTextField();
         tipoComboBox = new JComboBox<>(TipoConta.values());
         instituicaoField = new JTextField();
         saldoInicialField = new JTextField();
         mensagemLabel = UiStyles.createMessageLabel();
+        cancelarButton = new JButton("Cancelar");
+        salvarButton = new JButton("Salvar");
         initialize(dadosIniciais);
     }
 
-    public static Optional<DadosContaForm> showDialog(Window owner, String titulo, DadosContaForm dadosIniciais,
-                                                      MoneyFormatter moneyFormatter) {
-        ContaFormDialog dialog = new ContaFormDialog(owner, titulo, dadosIniciais, moneyFormatter);
-        dialog.setVisible(true);
-        return Optional.ofNullable(dialog.resultado);
-    }
-
     private void initialize(DadosContaForm dadosIniciais) {
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setContentPane(criarConteudo());
         preencherDados(dadosIniciais);
 
         getRootPane().registerKeyboardAction(
-                event -> dispose(),
+                event -> fecharSePermitido(),
                 KeyStroke.getKeyStroke("ESCAPE"),
                 JComponent.WHEN_IN_FOCUSED_WINDOW
         );
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                fecharSePermitido();
+            }
+        });
 
         pack();
         setMinimumSize(new Dimension(430, 330));
@@ -133,13 +141,10 @@ public class ContaFormDialog extends JDialog {
     }
 
     private JPanel criarRodape() {
-        JButton cancelarButton = new JButton("Cancelar");
-        JButton salvarButton = new JButton("Salvar");
-
         UiStyles.styleSecondaryButton(cancelarButton);
         UiStyles.stylePrimaryButton(salvarButton);
 
-        cancelarButton.addActionListener(event -> dispose());
+        cancelarButton.addActionListener(event -> fecharSePermitido());
         salvarButton.addActionListener(event -> salvar());
         getRootPane().setDefaultButton(salvarButton);
 
@@ -155,6 +160,7 @@ public class ContaFormDialog extends JDialog {
     }
 
     private void salvar() {
+        mensagemLabel.setText(" ");
         String nome = nomeField.getText() != null ? nomeField.getText().trim() : "";
         TipoConta tipo = (TipoConta) tipoComboBox.getSelectedItem();
         String instituicao = instituicaoField.getText();
@@ -174,8 +180,8 @@ public class ContaFormDialog extends JDialog {
 
         try {
             BigDecimal saldoInicial = moneyFormatter.parse(saldoTexto);
-            resultado = new DadosContaForm(nome, tipo, instituicao, saldoInicial);
-            dispose();
+            setProcessando(true);
+            aoSalvar.accept(new DadosContaForm(nome, tipo, instituicao, saldoInicial));
         } catch (ValidacaoException exception) {
             mensagemLabel.setForeground(UiStyles.ERROR);
             mensagemLabel.setText(exception.getMessage());
@@ -193,5 +199,36 @@ public class ContaFormDialog extends JDialog {
         tipoComboBox.setSelectedItem(dadosIniciais.tipo());
         instituicaoField.setText(dadosIniciais.instituicao());
         saldoInicialField.setText(moneyFormatter.formatForInput(dadosIniciais.saldoInicial()));
+    }
+
+    void abrir() {
+        setVisible(true);
+    }
+
+    void fechar() {
+        setProcessando(false);
+        dispose();
+    }
+
+    void exibirErro(String mensagem) {
+        setProcessando(false);
+        mensagemLabel.setForeground(UiStyles.ERROR);
+        mensagemLabel.setText(mensagem != null && !mensagem.isBlank() ? mensagem : " ");
+    }
+
+    private void fecharSePermitido() {
+        if (!processando) {
+            dispose();
+        }
+    }
+
+    private void setProcessando(boolean processando) {
+        this.processando = processando;
+        nomeField.setEnabled(!processando);
+        tipoComboBox.setEnabled(!processando);
+        instituicaoField.setEnabled(!processando);
+        saldoInicialField.setEnabled(!processando);
+        cancelarButton.setEnabled(!processando);
+        salvarButton.setEnabled(!processando);
     }
 }

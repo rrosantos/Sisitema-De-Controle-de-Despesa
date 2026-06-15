@@ -12,6 +12,7 @@ import br.com.controledespesas.security.PasswordHasher;
 import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.service.CategoriaService;
 import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.service.UsuarioService;
 import br.com.controledespesas.session.SessaoUsuario;
 
@@ -28,6 +29,7 @@ public class ApplicationContext {
     private final AutenticacaoService autenticacaoService;
     private final CategoriaService categoriaService;
     private final ContaService contaService;
+    private final TransacaoService transacaoService;
     private final AsyncTaskExecutor asyncTaskExecutor;
 
     public ApplicationContext() {
@@ -42,6 +44,7 @@ public class ApplicationContext {
         this.autenticacaoService = new AutenticacaoService(usuarioDAO, passwordHasher, sessaoUsuario);
         this.categoriaService = new CategoriaService(categoriaDAO);
         this.contaService = new ContaService(contaDAO);
+        this.transacaoService = new TransacaoService(transacaoDAO, categoriaDAO, contaDAO, connectionProvider);
         this.asyncTaskExecutor = new SwingWorkerAsyncTaskExecutor();
     }
 
@@ -63,6 +66,10 @@ public class ApplicationContext {
 
     public ContaService getContaService() {
         return contaService;
+    }
+
+    public TransacaoService getTransacaoService() {
+        return transacaoService;
     }
 
     public SessaoUsuario getSessaoUsuario() {

@@ -4,15 +4,16 @@ import br.com.controledespesas.exception.ValidacaoException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
-import java.text.ParsePosition;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class MoneyFormatter {
 
-    private static final Locale LOCALE_PT_BR = new Locale("pt", "BR");
+    private static final Locale LOCALE_PT_BR = Locale.of("pt", "BR");
+    private static final Pattern PADRAO_MONETARIO_BR = Pattern.compile(
+            "^(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:,\\d{1,2})?$"
+    );
     private static final String MENSAGEM_INVALIDA = "Informe um valor monetario valido.";
     private static final String MENSAGEM_NEGATIVA = "O saldo inicial nao pode ser negativo.";
 
@@ -26,16 +27,19 @@ public class MoneyFormatter {
             throw new ValidacaoException(MENSAGEM_INVALIDA);
         }
 
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(LOCALE_PT_BR);
-        DecimalFormat decimalFormat = new DecimalFormat("#,##0.##", symbols);
-        decimalFormat.setParseBigDecimal(true);
-        decimalFormat.setGroupingUsed(true);
+        if (normalizado.startsWith("-")) {
+            throw new ValidacaoException(MENSAGEM_NEGATIVA);
+        }
 
-        ParsePosition parsePosition = new ParsePosition(0);
-        Object parsed = decimalFormat.parse(normalizado, parsePosition);
-
-        if (!(parsed instanceof BigDecimal valor) || parsePosition.getIndex() != normalizado.length()) {
+        if (!PADRAO_MONETARIO_BR.matcher(normalizado).matches()) {
             throw new ValidacaoException(MENSAGEM_INVALIDA);
+        }
+
+        BigDecimal valor;
+        try {
+            valor = new BigDecimal(normalizado.replace(".", "").replace(',', '.'));
+        } catch (NumberFormatException exception) {
+            throw new ValidacaoException(MENSAGEM_INVALIDA, exception);
         }
 
         BigDecimal valorNormalizado = valor.setScale(2, RoundingMode.HALF_UP);
@@ -60,10 +64,10 @@ public class MoneyFormatter {
             return "";
         }
 
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(LOCALE_PT_BR);
-        DecimalFormat decimalFormat = new DecimalFormat("#,##0.00", symbols);
-        decimalFormat.setParseBigDecimal(true);
-        decimalFormat.setGroupingUsed(true);
-        return decimalFormat.format(valor);
+        NumberFormat numberFormat = NumberFormat.getNumberInstance(LOCALE_PT_BR);
+        numberFormat.setGroupingUsed(true);
+        numberFormat.setMinimumFractionDigits(2);
+        numberFormat.setMaximumFractionDigits(2);
+        return numberFormat.format(valor);
     }
 }

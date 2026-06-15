@@ -5,10 +5,12 @@ import br.com.controledespesas.model.Usuario;
 import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.service.CategoriaService;
 import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.session.SessaoUsuario;
 import br.com.controledespesas.view.CategoriaPanel;
 import br.com.controledespesas.view.ContaPanel;
 import br.com.controledespesas.view.InicioPanel;
+import br.com.controledespesas.view.TransacaoPanel;
 import br.com.controledespesas.view.contract.MainView;
 
 import javax.swing.JPanel;
@@ -20,6 +22,7 @@ public class MainController {
 
     private static final Logger LOGGER = Logger.getLogger(MainController.class.getName());
     static final String PAINEL_INICIO = "inicio";
+    static final String PAINEL_TRANSACOES = "transacoes";
     static final String PAINEL_CATEGORIAS = "categorias";
     static final String PAINEL_CONTAS = "contas";
 
@@ -28,15 +31,17 @@ public class MainController {
     private final MainView mainView;
     private final ApplicationController applicationController;
     private final InicioPanel inicioPanel;
+    private final JPanel transacaoPanel;
     private final JPanel categoriaPanel;
     private final JPanel contaPanel;
+    private final TransacaoController transacaoController;
     private final CategoriaController categoriaController;
     private final ContaController contaController;
 
     private boolean componentesRegistrados;
 
     public MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
-                          CategoriaService categoriaService, ContaService contaService,
+                          TransacaoService transacaoService, CategoriaService categoriaService, ContaService contaService,
                           AsyncTaskExecutor asyncTaskExecutor, MainView mainView,
                           ApplicationController applicationController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
@@ -44,11 +49,23 @@ public class MainController {
         this.mainView = Objects.requireNonNull(mainView, "mainView nao pode ser nulo.");
         this.applicationController =
                 Objects.requireNonNull(applicationController, "applicationController nao pode ser nulo.");
+        Objects.requireNonNull(transacaoService, "transacaoService nao pode ser nulo.");
         Objects.requireNonNull(categoriaService, "categoriaService nao pode ser nulo.");
         Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
         Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
 
         this.inicioPanel = new InicioPanel();
+
+        TransacaoPanel transacaoPanelConcreto = new TransacaoPanel();
+        this.transacaoPanel = transacaoPanelConcreto;
+        this.transacaoController = new TransacaoController(
+                transacaoService,
+                categoriaService,
+                contaService,
+                sessaoUsuario,
+                transacaoPanelConcreto,
+                asyncTaskExecutor
+        );
 
         CategoriaPanel categoriaPanelConcreto = new CategoriaPanel();
         this.categoriaPanel = categoriaPanelConcreto;
@@ -63,16 +80,22 @@ public class MainController {
 
     MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
                    MainView mainView, ApplicationController applicationController,
-                   InicioPanel inicioPanel, JPanel categoriaPanel, JPanel contaPanel,
-                   CategoriaController categoriaController, ContaController contaController) {
+                   InicioPanel inicioPanel, JPanel transacaoPanel, JPanel categoriaPanel, JPanel contaPanel,
+                   TransacaoController transacaoController, CategoriaController categoriaController,
+                   ContaController contaController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.mainView = Objects.requireNonNull(mainView, "mainView nao pode ser nulo.");
         this.applicationController =
                 Objects.requireNonNull(applicationController, "applicationController nao pode ser nulo.");
         this.inicioPanel = Objects.requireNonNull(inicioPanel, "inicioPanel nao pode ser nulo.");
+        this.transacaoPanel = Objects.requireNonNull(transacaoPanel, "transacaoPanel nao pode ser nulo.");
         this.categoriaPanel = Objects.requireNonNull(categoriaPanel, "categoriaPanel nao pode ser nulo.");
         this.contaPanel = Objects.requireNonNull(contaPanel, "contaPanel nao pode ser nulo.");
+        this.transacaoController = Objects.requireNonNull(
+                transacaoController,
+                "transacaoController nao pode ser nulo."
+        );
         this.categoriaController = Objects.requireNonNull(categoriaController, "categoriaController nao pode ser nulo.");
         this.contaController = Objects.requireNonNull(contaController, "contaController nao pode ser nulo.");
     }
@@ -109,6 +132,16 @@ public class MainController {
         categoriaController.carregar();
     }
 
+    public void mostrarTransacoes() {
+        if (exigirUsuarioAtual() == null) {
+            return;
+        }
+
+        mainView.mostrarPainel(PAINEL_TRANSACOES);
+        mainView.definirMenuAtivo(PAINEL_TRANSACOES);
+        transacaoController.carregar();
+    }
+
     public void mostrarContas() {
         if (exigirUsuarioAtual() == null) {
             return;
@@ -134,12 +167,15 @@ public class MainController {
         }
 
         mainView.adicionarPainel(PAINEL_INICIO, inicioPanel);
+        mainView.adicionarPainel(PAINEL_TRANSACOES, transacaoPanel);
         mainView.adicionarPainel(PAINEL_CATEGORIAS, categoriaPanel);
         mainView.adicionarPainel(PAINEL_CONTAS, contaPanel);
         mainView.definirAcaoInicio(this::mostrarInicio);
+        mainView.definirAcaoTransacoes(this::mostrarTransacoes);
         mainView.definirAcaoCategorias(this::mostrarCategorias);
         mainView.definirAcaoContas(this::mostrarContas);
         mainView.definirAcaoSair(this::realizarLogout);
+        inicioPanel.definirAcaoTransacoes(this::mostrarTransacoes);
         inicioPanel.definirAcaoCategorias(this::mostrarCategorias);
         inicioPanel.definirAcaoContas(this::mostrarContas);
         componentesRegistrados = true;

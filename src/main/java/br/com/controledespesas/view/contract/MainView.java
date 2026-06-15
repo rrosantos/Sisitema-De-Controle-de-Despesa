@@ -14,6 +14,8 @@ public interface MainView {
 
     void definirAcaoInicio(Runnable acao);
 
+    void definirAcaoTransacoes(Runnable acao);
+
     void definirAcaoCategorias(Runnable acao);
 
     void definirAcaoContas(Runnable acao);

@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public class ContaPanel extends JPanel implements ContaView {
@@ -62,6 +61,7 @@ public class ContaPanel extends JPanel implements ContaView {
 
     private final List<Conta> contasOriginais = new ArrayList<>();
     private final Map<Long, BigDecimal> saldos = new HashMap<>();
+    private ContaFormDialog formularioAtual;
 
     private Runnable novaContaAction;
     private Consumer<Conta> editarAction;
@@ -154,23 +154,32 @@ public class ContaPanel extends JPanel implements ContaView {
     }
 
     @Override
-    public Optional<DadosContaForm> abrirFormularioCadastro() {
-        return ContaFormDialog.showDialog(
-                SwingUtilities.getWindowAncestor(this),
-                "Nova conta",
-                null,
-                moneyFormatter
+    public void abrirFormularioCadastro(Consumer<DadosContaForm> aoSalvar) {
+        abrirFormulario("Nova conta", null, aoSalvar);
+    }
+
+    @Override
+    public void abrirFormularioEdicao(Conta conta, Consumer<DadosContaForm> aoSalvar) {
+        abrirFormulario(
+                "Editar conta",
+                new DadosContaForm(conta.getNome(), conta.getTipo(), conta.getInstituicao(), conta.getSaldoInicial()),
+                aoSalvar
         );
     }
 
     @Override
-    public Optional<DadosContaForm> abrirFormularioEdicao(Conta conta) {
-        return ContaFormDialog.showDialog(
-                SwingUtilities.getWindowAncestor(this),
-                "Editar conta",
-                new DadosContaForm(conta.getNome(), conta.getTipo(), conta.getInstituicao(), conta.getSaldoInicial()),
-                moneyFormatter
-        );
+    public void fecharFormulario() {
+        if (formularioAtual != null) {
+            formularioAtual.fechar();
+            formularioAtual = null;
+        }
+    }
+
+    @Override
+    public void exibirErroFormulario(String mensagem) {
+        if (formularioAtual != null) {
+            formularioAtual.exibirErro(mensagem);
+        }
     }
 
     @Override
@@ -477,6 +486,22 @@ public class ContaPanel extends JPanel implements ContaView {
     private void executarNovaConta() {
         if (novaContaAction != null) {
             novaContaAction.run();
+        }
+    }
+
+    private void abrirFormulario(String titulo, DadosContaForm dadosIniciais, Consumer<DadosContaForm> aoSalvar) {
+        fecharFormulario();
+        ContaFormDialog dialog = new ContaFormDialog(
+                SwingUtilities.getWindowAncestor(this),
+                titulo,
+                dadosIniciais,
+                moneyFormatter,
+                aoSalvar
+        );
+        formularioAtual = dialog;
+        dialog.abrir();
+        if (formularioAtual == dialog && !dialog.isDisplayable()) {
+            formularioAtual = null;
         }
     }
 }

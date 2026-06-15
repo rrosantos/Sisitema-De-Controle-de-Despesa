@@ -2,6 +2,8 @@ package br.com.controledespesas.view;
 
 import br.com.controledespesas.model.TipoCategoria;
 import br.com.controledespesas.model.TipoConta;
+import br.com.controledespesas.model.TipoTransacao;
+import br.com.controledespesas.model.StatusTransacao;
 
 final class ViewFormatters {
 
@@ -32,6 +34,30 @@ final class ViewFormatters {
             case POUPANCA -> "Poupanca";
             case CONTA_DIGITAL -> "Conta digital";
             case OUTRO -> "Outro";
+        };
+    }
+
+    static String formatTipoTransacao(TipoTransacao tipoTransacao) {
+        if (tipoTransacao == null) {
+            return DASH;
+        }
+
+        return switch (tipoTransacao) {
+            case RECEITA -> "Receita";
+            case DESPESA -> "Despesa";
+        };
+    }
+
+    static String formatStatusTransacao(StatusTransacao statusTransacao) {
+        if (statusTransacao == null) {
+            return DASH;
+        }
+
+        return switch (statusTransacao) {
+            case PENDENTE -> "Pendente";
+            case PAGO -> "Pago";
+            case RECEBIDO -> "Recebido";
+            case CANCELADO -> "Cancelado";
         };
     }
 

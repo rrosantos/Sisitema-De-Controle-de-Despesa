@@ -44,7 +44,7 @@ src/
 - `app`: ponto de entrada da aplicacao.
 - `config`: leitura e validacao das variaveis de ambiente.
 - `database`: conexao JDBC e scripts SQL.
-- `view`: telas Swing, paines de autenticacao e estrutura inicial da tela principal.
+- `view`: telas Swing, paines de autenticacao, modulos financeiros e componentes reutilizaveis da interface.
 - `dao`: acesso JDBC ao banco de dados.
 - `model`: entidades e enums do dominio.
 - `service`: regras de negocio, validacoes, autenticacao e coordenacao transacional.
@@ -215,7 +215,7 @@ Componentes principais:
 - `AuthFrame`: janela com `CardLayout` para alternar entre login e cadastro.
 - `LoginPanel`: coleta e-mail e senha e encaminha eventos ao `LoginController`.
 - `CadastroUsuarioPanel`: coleta nome, e-mail, senha e confirmacao e encaminha eventos ao `CadastroUsuarioController`.
-- `MainFrame`: apresenta o usuario autenticado, a mensagem inicial e os modulos financeiros como funcionalidades futuras.
+- `MainFrame`: apresenta o usuario autenticado, a mensagem inicial e a navegacao entre os modulos financeiros liberados na etapa atual.
 
 Controllers e navegacao:
 
@@ -245,8 +245,8 @@ Separacao de responsabilidades:
 
 Limitacao atual da interface:
 
-- Os modulos de transacoes, contas, categorias e cofrinhos aparecem apenas como estrutura visual inicial.
-- O CRUD desses modulos sera implementado nas proximas etapas.
+- A interface ja entrega login, categorias, contas e transacoes na mesma janela principal.
+- `Cofrinhos`, graficos e relatorios continuam como evolucoes futuras.
 
 ## Gerenciamento de categorias e contas
 
@@ -255,8 +255,8 @@ Nesta etapa, a tela principal passou a funcionar como a janela definitiva da apl
 Navegacao principal:
 
 - `MainFrame` agora usa `CardLayout` para alternar o conteudo sem abrir novos `JFrame`.
-- O menu lateral destaca o modulo ativo e mantem `Inicio`, `Categorias` e `Contas` acessiveis na mesma janela.
-- `Transacoes` e `Cofrinhos` continuam sinalizados como modulos futuros.
+- O menu lateral destaca o modulo ativo e mantem `Inicio`, `Transacoes`, `Categorias` e `Contas` acessiveis na mesma janela.
+- Apenas `Cofrinhos` permanece sinalizado como funcionalidade futura.
 
 Categorias:
 
@@ -270,6 +270,11 @@ Contas:
 - O saldo inicial continua persistido na tabela `contas`, enquanto o saldo atual e calculado pelo `ContaService` a partir de `saldo_inicial` e `transacoes`.
 - A listagem formata valores em Real brasileiro com `BigDecimal` e uma utilitaria `MoneyFormatter`, sem uso de `double`.
 
+Comportamento dos formularios:
+
+- Os dialogos de categorias e contas agora permanecem abertos quando o `Service` retorna erro de validacao ou regra de negocio.
+- Os dados preenchidos continuam preservados, a mensagem aparece no proprio formulario e o fechamento acontece somente apos sucesso.
+
 Separacao de responsabilidades:
 
 - `View`: renderiza componentes Swing, formularios modais, estados vazios e indicadores de carregamento.
@@ -279,9 +284,39 @@ Separacao de responsabilidades:
 
 Pendencias intencionais:
 
-- CRUD de transacoes.
 - CRUD de cofrinhos.
 - dashboard financeiro, graficos e relatorios.
+
+## Gerenciamento de transacoes
+
+Nesta etapa, o modulo `Transacoes` foi ativado no menu principal e no card inicial, usando o mesmo `CardLayout` da `MainFrame` sem recriar paines ou abrir novas janelas.
+
+Listagem e navegacao:
+
+- O `TransacaoController` carrega categorias, contas, transacoes e resumo financeiro com o mesmo usuario obtido de `SessaoUsuario`.
+- O painel lista receitas e despesas com datas em `dd/MM/yyyy`, valores em Real brasileiro e nomes resolvidos de categoria e conta.
+- `TransacaoTableModel` recebe apenas dados ja resolvidos e nao consulta banco por linha, por renderer nem por acao da tabela.
+
+Cadastro, edicao e exclusao:
+
+- O formulario modal reutiliza `MoneyFormatter` e `DateFormatter`, trabalha com `BigDecimal` e `LocalDate` e inicia novas transacoes com a data atual.
+- Receitas aceitam apenas `PENDENTE`, `RECEBIDO` e `CANCELADO`; despesas aceitam apenas `PENDENTE`, `PAGO` e `CANCELADO`.
+- Novos cadastros aceitam somente categorias e contas ativas; na edicao, o registro historico pode manter categoria ou conta inativa ja vinculada.
+- Erros de validacao e regra de negocio permanecem dentro do dialogo, com os campos preservados, e o fechamento ocorre somente quando o `Service` confirma sucesso.
+- A exclusao exige confirmacao, preserva os filtros atuais e recarrega lista e resumo apos a operacao.
+
+Filtros e resumo:
+
+- Os filtros cobrem data inicial, data final, tipo, status, categoria, conta e descricao, sempre convertidos para `TransacaoFiltro`.
+- O resumo exibe `Receitas recebidas`, `Despesas pagas` e `Saldo do periodo`, calculados pelo `TransacaoService` sem somas manuais em Java.
+- Os cards acompanham apenas o intervalo de datas informado; filtros por texto, categoria, conta ou status nao alteram os totais quando o calculo do `Service` considera somente o periodo.
+
+Arquitetura e execucao:
+
+- O modulo segue a separacao MVC ja adotada: a View apenas coleta dados e renderiza estados, o Controller coordena fluxo e os Services concentram as regras.
+- Todas as operacoes de carregar, filtrar, cadastrar, atualizar e excluir usam o `AsyncTaskExecutor` para nao bloquear o EDT.
+- O isolamento por usuario continua garantido por `usuario_id`, sem receber `usuarioId` da interface e sem acesso direto a DAO fora dos Services.
+- `Cofrinhos` continua fora do escopo funcional desta etapa.
 
 Para iniciar a aplicacao:
 

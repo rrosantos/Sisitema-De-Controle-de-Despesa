@@ -20,6 +20,8 @@ public class CategoriaController {
     private static final Logger LOGGER = Logger.getLogger(CategoriaController.class.getName());
     private static final String MENSAGEM_ERRO_TECNICO =
             "Nao foi possivel acessar as categorias. Tente novamente.";
+    private static final String MENSAGEM_ERRO_SALVAR =
+            "Nao foi possivel salvar a categoria. Tente novamente.";
     private static final String MENSAGEM_EXCLUSAO_BLOQUEADA =
             "A categoria nao pode ser excluida porque possui transacoes vinculadas. Voce pode inativa-la.";
     private static final String MENSAGEM_CADASTRO_SUCESSO = "Categoria cadastrada com sucesso.";
@@ -48,8 +50,8 @@ public class CategoriaController {
     }
 
     public void novaCategoria() {
-        categoriaView.abrirFormularioCadastro().ifPresent(dados ->
-                executarOperacao(() -> cadastrarCategoria(dados), true));
+        categoriaView.limparMensagem();
+        categoriaView.abrirFormularioCadastro(dados -> executarOperacaoFormulario(() -> cadastrarCategoria(dados)));
     }
 
     public void editar(Categoria categoria) {
@@ -57,8 +59,11 @@ public class CategoriaController {
             return;
         }
 
-        categoriaView.abrirFormularioEdicao(categoria).ifPresent(dados ->
-                executarOperacao(() -> atualizarCategoria(categoria, dados), true));
+        categoriaView.limparMensagem();
+        categoriaView.abrirFormularioEdicao(
+                categoria,
+                dados -> executarOperacaoFormulario(() -> atualizarCategoria(categoria, dados))
+        );
     }
 
     public void alterarStatus(Categoria categoria) {
@@ -98,7 +103,20 @@ public class CategoriaController {
         asyncTaskExecutor.execute(
                 operacao,
                 this::aplicarResultado,
-                this::tratarErro,
+                this::tratarErroPainel,
+                () -> categoriaView.exibirCarregamento(false)
+        );
+    }
+
+    private void executarOperacaoFormulario(Callable<CategoriaResultado> operacao) {
+        categoriaView.exibirCarregamento(true);
+        asyncTaskExecutor.execute(
+                operacao,
+                resultado -> {
+                    categoriaView.fecharFormulario();
+                    aplicarResultado(resultado);
+                },
+                this::tratarErroFormulario,
                 () -> categoriaView.exibirCarregamento(false)
         );
     }
@@ -146,7 +164,7 @@ public class CategoriaController {
         }
     }
 
-    private void tratarErro(Throwable throwable) {
+    private void tratarErroPainel(Throwable throwable) {
         if (throwable instanceof ValidacaoException || throwable instanceof RegraNegocioException) {
             categoriaView.exibirMensagemErro(mapearMensagemNegocio(throwable.getMessage()));
             return;
@@ -160,6 +178,22 @@ public class CategoriaController {
 
         LOGGER.log(Level.SEVERE, "Erro inesperado no modulo de categorias.", throwable);
         categoriaView.exibirMensagemErro(MENSAGEM_ERRO_TECNICO);
+    }
+
+    private void tratarErroFormulario(Throwable throwable) {
+        if (throwable instanceof ValidacaoException || throwable instanceof RegraNegocioException) {
+            categoriaView.exibirErroFormulario(mapearMensagemNegocio(throwable.getMessage()));
+            return;
+        }
+
+        if (throwable instanceof SQLException) {
+            LOGGER.log(Level.WARNING, "Falha tecnica ao salvar categoria.", throwable);
+            categoriaView.exibirErroFormulario(MENSAGEM_ERRO_SALVAR);
+            return;
+        }
+
+        LOGGER.log(Level.SEVERE, "Erro inesperado ao salvar categoria.", throwable);
+        categoriaView.exibirErroFormulario(MENSAGEM_ERRO_SALVAR);
     }
 
     private String mapearMensagemNegocio(String mensagemOriginal) {

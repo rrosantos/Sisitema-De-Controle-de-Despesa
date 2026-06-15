@@ -3,7 +3,6 @@ package br.com.controledespesas.view.contract;
 import br.com.controledespesas.model.Categoria;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface CategoriaView {
@@ -18,9 +17,13 @@ public interface CategoriaView {
 
     void exibirEstadoVazio();
 
-    Optional<DadosCategoriaForm> abrirFormularioCadastro();
+    void abrirFormularioCadastro(Consumer<DadosCategoriaForm> aoSalvar);
 
-    Optional<DadosCategoriaForm> abrirFormularioEdicao(Categoria categoria);
+    void abrirFormularioEdicao(Categoria categoria, Consumer<DadosCategoriaForm> aoSalvar);
+
+    void fecharFormulario();
+
+    void exibirErroFormulario(String mensagem);
 
     boolean confirmarExclusao(Categoria categoria);
 

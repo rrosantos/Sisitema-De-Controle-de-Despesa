@@ -35,7 +35,6 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 public class CategoriaPanel extends JPanel implements CategoriaView {
@@ -57,6 +56,7 @@ public class CategoriaPanel extends JPanel implements CategoriaView {
     private final EmptyStatePanel emptyStatePanel;
 
     private final List<Categoria> categoriasOriginais = new ArrayList<>();
+    private CategoriaFormDialog formularioAtual;
 
     private Runnable novaCategoriaAction;
     private Consumer<Categoria> editarAction;
@@ -134,21 +134,32 @@ public class CategoriaPanel extends JPanel implements CategoriaView {
     }
 
     @Override
-    public Optional<DadosCategoriaForm> abrirFormularioCadastro() {
-        return CategoriaFormDialog.showDialog(
-                SwingUtilities.getWindowAncestor(this),
-                "Nova categoria",
-                null
+    public void abrirFormularioCadastro(Consumer<DadosCategoriaForm> aoSalvar) {
+        abrirFormulario("Nova categoria", null, aoSalvar);
+    }
+
+    @Override
+    public void abrirFormularioEdicao(Categoria categoria, Consumer<DadosCategoriaForm> aoSalvar) {
+        abrirFormulario(
+                "Editar categoria",
+                new DadosCategoriaForm(categoria.getNome(), categoria.getTipo(), categoria.getDescricao()),
+                aoSalvar
         );
     }
 
     @Override
-    public Optional<DadosCategoriaForm> abrirFormularioEdicao(Categoria categoria) {
-        return CategoriaFormDialog.showDialog(
-                SwingUtilities.getWindowAncestor(this),
-                "Editar categoria",
-                new DadosCategoriaForm(categoria.getNome(), categoria.getTipo(), categoria.getDescricao())
-        );
+    public void fecharFormulario() {
+        if (formularioAtual != null) {
+            formularioAtual.fechar();
+            formularioAtual = null;
+        }
+    }
+
+    @Override
+    public void exibirErroFormulario(String mensagem) {
+        if (formularioAtual != null) {
+            formularioAtual.exibirErro(mensagem);
+        }
     }
 
     @Override
@@ -446,6 +457,21 @@ public class CategoriaPanel extends JPanel implements CategoriaView {
     private void executarNovaCategoria() {
         if (novaCategoriaAction != null) {
             novaCategoriaAction.run();
+        }
+    }
+
+    private void abrirFormulario(String titulo, DadosCategoriaForm dadosIniciais, Consumer<DadosCategoriaForm> aoSalvar) {
+        fecharFormulario();
+        CategoriaFormDialog dialog = new CategoriaFormDialog(
+                SwingUtilities.getWindowAncestor(this),
+                titulo,
+                dadosIniciais,
+                aoSalvar
+        );
+        formularioAtual = dialog;
+        dialog.abrir();
+        if (formularioAtual == dialog && !dialog.isDisplayable()) {
+            formularioAtual = null;
         }
     }
 }

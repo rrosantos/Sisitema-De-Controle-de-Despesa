@@ -118,6 +118,11 @@ public class MainFrame extends JFrame implements MainView {
     }
 
     @Override
+    public void definirAcaoTransacoes(Runnable acao) {
+        configurarAcao(transacoesButton, acao);
+    }
+
+    @Override
     public void definirAcaoCategorias(Runnable acao) {
         configurarAcao(categoriasButton, acao);
     }
@@ -279,16 +284,14 @@ public class MainFrame extends JFrame implements MainView {
 
     private void registrarMenuButtons() {
         menuButtons.put(PAINEL_INICIO, inicioButton);
+        menuButtons.put(PAINEL_TRANSACOES, transacoesButton);
         menuButtons.put(PAINEL_CONTAS, contasButton);
         menuButtons.put(PAINEL_CATEGORIAS, categoriasButton);
     }
 
     private void configurarBotoesFuturos() {
-        transacoesButton.setEnabled(false);
-        transacoesButton.setToolTipText("Disponivel nas proximas etapas.");
         cofrinhosButton.setEnabled(false);
         cofrinhosButton.setToolTipText("Disponivel nas proximas etapas.");
-        aplicarEstiloPlaceholder(transacoesButton);
         aplicarEstiloPlaceholder(cofrinhosButton);
     }
 

@@ -23,6 +23,7 @@ class ApplicationContextTest {
         Object sessionInsideService = field.get(autenticacaoService);
 
         assertNotNull(applicationContext.getAsyncTaskExecutor());
+        assertNotNull(applicationContext.getTransacaoService());
         assertSame(sessaoUsuario, sessionInsideService);
     }
 }

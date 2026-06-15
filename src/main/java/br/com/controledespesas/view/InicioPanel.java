@@ -14,6 +14,7 @@ import java.awt.GridLayout;
 public class InicioPanel extends JPanel {
 
     private final JLabel boasVindasLabel;
+    private final JButton transacoesButton;
     private final JButton categoriasButton;
     private final JButton contasButton;
 
@@ -22,6 +23,7 @@ public class InicioPanel extends JPanel {
         setOpaque(false);
 
         boasVindasLabel = new JLabel("Bem-vinda(o), Usuario.");
+        transacoesButton = new JButton("Abrir transacoes");
         categoriasButton = new JButton("Abrir categorias");
         contasButton = new JButton("Abrir contas");
 
@@ -44,6 +46,16 @@ public class InicioPanel extends JPanel {
         }
     }
 
+    public void definirAcaoTransacoes(Runnable acao) {
+        for (var listener : transacoesButton.getActionListeners()) {
+            transacoesButton.removeActionListener(listener);
+        }
+
+        if (acao != null) {
+            transacoesButton.addActionListener(event -> acao.run());
+        }
+    }
+
     public void definirAcaoContas(Runnable acao) {
         for (var listener : contasButton.getActionListeners()) {
             contasButton.removeActionListener(listener);
@@ -62,13 +74,13 @@ public class InicioPanel extends JPanel {
         boasVindasLabel.setFont(UiStyles.TITLE_FONT);
         boasVindasLabel.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel subtitulo = new JLabel("Organize categorias e contas antes de registrar suas movimentacoes.");
+        JLabel subtitulo = new JLabel("Organize categorias, contas e transacoes no mesmo fluxo principal.");
         subtitulo.setFont(UiStyles.SUBTITLE_FONT);
         subtitulo.setForeground(UiStyles.TEXT_SECONDARY);
 
         JTextArea texto = new JTextArea(
-                "Use os atalhos abaixo para configurar a base do seu controle financeiro. " +
-                        "Os modulos de transacoes e cofrinhos serao disponibilizados nas proximas etapas."
+                "Use os atalhos abaixo para navegar entre os modulos ja disponiveis e acompanhar seu controle financeiro. " +
+                        "O modulo de cofrinhos continua planejado para as proximas etapas."
         );
         texto.setEditable(false);
         texto.setFocusable(false);
@@ -93,9 +105,9 @@ public class InicioPanel extends JPanel {
         cards.add(criarCard(
                 "Transacoes",
                 "Registre receitas e despesas com filtros e resumos.",
-                "Disponivel na proxima etapa",
-                null,
-                false
+                "Abrir transacoes",
+                transacoesButton,
+                true
         ));
         cards.add(criarCard(
                 "Contas",

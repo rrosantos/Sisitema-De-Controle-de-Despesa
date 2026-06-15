@@ -19,10 +19,11 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -99,7 +100,11 @@ class ContaControllerTest {
                 new BigDecimal("0.00")
         );
         Conta conta = conta(20L, "Carteira", TipoConta.CARTEIRA, true);
-        when(contaView.abrirFormularioCadastro()).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosContaForm> consumer = invocation.getArgument(0);
+            consumer.accept(dados);
+            return null;
+        }).when(contaView).abrirFormularioCadastro(any());
         when(contaService.cadastrar(1L, "Carteira", TipoConta.CARTEIRA, null, new BigDecimal("0.00"))).thenReturn(conta);
         when(contaService.listarPorUsuario(1L)).thenReturn(List.of(conta));
         when(contaService.consultarSaldoAtual(20L, 1L)).thenReturn(new BigDecimal("0.00"));
@@ -107,24 +112,30 @@ class ContaControllerTest {
         contaController.novaConta();
 
         verify(contaService).cadastrar(1L, "Carteira", TipoConta.CARTEIRA, null, new BigDecimal("0.00"));
+        verify(contaView).fecharFormulario();
         verify(contaView).exibirMensagemSucesso("Conta cadastrada com sucesso.");
     }
 
     @Test
-    void shouldShowValidationErrorWhenInitialBalanceIsNegative() throws Exception {
+    void shouldKeepFormOpenWhenInitialBalanceIsNegative() throws Exception {
         DadosContaForm dados = new DadosContaForm(
                 "Conta teste",
                 TipoConta.OUTRO,
                 null,
                 new BigDecimal("-5.00")
         );
-        when(contaView.abrirFormularioCadastro()).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosContaForm> consumer = invocation.getArgument(0);
+            consumer.accept(dados);
+            return null;
+        }).when(contaView).abrirFormularioCadastro(any());
         when(contaService.cadastrar(1L, "Conta teste", TipoConta.OUTRO, null, new BigDecimal("-5.00")))
                 .thenThrow(new ValidacaoException("Saldo inicial nao pode ser negativo."));
 
         contaController.novaConta();
 
-        verify(contaView).exibirMensagemErro("Saldo inicial nao pode ser negativo.");
+        verify(contaView).exibirErroFormulario("Saldo inicial nao pode ser negativo.");
+        verify(contaView, never()).fecharFormulario();
         verify(contaView).exibirCarregamento(false);
     }
 
@@ -137,7 +148,11 @@ class ContaControllerTest {
                 "Banco Azul",
                 new BigDecimal("500.00")
         );
-        when(contaView.abrirFormularioEdicao(conta)).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosContaForm> consumer = invocation.getArgument(1);
+            consumer.accept(dados);
+            return null;
+        }).when(contaView).abrirFormularioEdicao(any(), any());
         when(contaService.atualizar(
                 21L,
                 1L,
@@ -159,7 +174,26 @@ class ContaControllerTest {
                 "Banco Azul",
                 new BigDecimal("500.00")
         );
+        verify(contaView).fecharFormulario();
         verify(contaView).exibirMensagemSucesso("Conta atualizada com sucesso.");
+    }
+
+    @Test
+    void shouldKeepFormOpenWhenAccountEditionFails() throws Exception {
+        Conta conta = conta(99L, "Fantasma", TipoConta.OUTRO, true);
+        DadosContaForm dados = new DadosContaForm("Fantasma", TipoConta.OUTRO, null, new BigDecimal("0.00"));
+        doAnswer(invocation -> {
+            Consumer<DadosContaForm> consumer = invocation.getArgument(1);
+            consumer.accept(dados);
+            return null;
+        }).when(contaView).abrirFormularioEdicao(any(), any());
+        when(contaService.atualizar(99L, 1L, "Fantasma", TipoConta.OUTRO, null, new BigDecimal("0.00")))
+                .thenThrow(new RegraNegocioException("Conta nao encontrada."));
+
+        contaController.editar(conta);
+
+        verify(contaView).exibirErroFormulario("Conta nao encontrada.");
+        verify(contaView, never()).fecharFormulario();
     }
 
     @Test
@@ -219,13 +253,17 @@ class ContaControllerTest {
     void shouldShowBusinessMessageWhenAccountDoesNotExist() throws Exception {
         Conta conta = conta(99L, "Fantasma", TipoConta.OUTRO, true);
         DadosContaForm dados = new DadosContaForm("Fantasma", TipoConta.OUTRO, null, new BigDecimal("0.00"));
-        when(contaView.abrirFormularioEdicao(conta)).thenReturn(Optional.of(dados));
+        doAnswer(invocation -> {
+            Consumer<DadosContaForm> consumer = invocation.getArgument(1);
+            consumer.accept(dados);
+            return null;
+        }).when(contaView).abrirFormularioEdicao(any(), any());
         when(contaService.atualizar(99L, 1L, "Fantasma", TipoConta.OUTRO, null, new BigDecimal("0.00")))
                 .thenThrow(new RegraNegocioException("Conta nao encontrada."));
 
         contaController.editar(conta);
 
-        verify(contaView).exibirMensagemErro("Conta nao encontrada.");
+        verify(contaView).exibirErroFormulario("Conta nao encontrada.");
     }
 
     @Test

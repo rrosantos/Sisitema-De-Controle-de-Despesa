@@ -22,7 +22,10 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Window;
-import java.util.Optional;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 public class CategoriaFormDialog extends JDialog {
 
@@ -30,34 +33,41 @@ public class CategoriaFormDialog extends JDialog {
     private final JComboBox<TipoCategoria> tipoComboBox;
     private final JTextArea descricaoArea;
     private final JLabel mensagemLabel;
+    private final JButton cancelarButton;
+    private final JButton salvarButton;
+    private final Consumer<DadosCategoriaForm> aoSalvar;
 
-    private DadosCategoriaForm resultado;
+    private boolean processando;
 
-    private CategoriaFormDialog(Window owner, String titulo, DadosCategoriaForm dadosIniciais) {
+    CategoriaFormDialog(Window owner, String titulo, DadosCategoriaForm dadosIniciais,
+                        Consumer<DadosCategoriaForm> aoSalvar) {
         super(owner, titulo, ModalityType.APPLICATION_MODAL);
+        this.aoSalvar = Objects.requireNonNull(aoSalvar, "aoSalvar nao pode ser nulo.");
         nomeField = new JTextField();
         tipoComboBox = new JComboBox<>(TipoCategoria.values());
         descricaoArea = new JTextArea(5, 20);
         mensagemLabel = UiStyles.createMessageLabel();
+        cancelarButton = new JButton("Cancelar");
+        salvarButton = new JButton("Salvar");
         initialize(dadosIniciais);
     }
 
-    public static Optional<DadosCategoriaForm> showDialog(Window owner, String titulo, DadosCategoriaForm dadosIniciais) {
-        CategoriaFormDialog dialog = new CategoriaFormDialog(owner, titulo, dadosIniciais);
-        dialog.setVisible(true);
-        return Optional.ofNullable(dialog.resultado);
-    }
-
     private void initialize(DadosCategoriaForm dadosIniciais) {
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setContentPane(criarConteudo());
         preencherDados(dadosIniciais);
 
         getRootPane().registerKeyboardAction(
-                event -> dispose(),
+                event -> fecharSePermitido(),
                 KeyStroke.getKeyStroke("ESCAPE"),
                 JComponent.WHEN_IN_FOCUSED_WINDOW
         );
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                fecharSePermitido();
+            }
+        });
 
         pack();
         setMinimumSize(new Dimension(430, 360));
@@ -125,14 +135,12 @@ public class CategoriaFormDialog extends JDialog {
     }
 
     private JPanel criarRodape() {
-        JButton cancelarButton = new JButton("Cancelar");
-        JButton salvarButton = criarBotaoSalvar();
-
         UiStyles.styleSecondaryButton(cancelarButton);
         UiStyles.stylePrimaryButton(salvarButton);
         getRootPane().setDefaultButton(salvarButton);
 
-        cancelarButton.addActionListener(event -> dispose());
+        cancelarButton.addActionListener(event -> fecharSePermitido());
+        salvarButton.addActionListener(event -> salvar());
 
         JPanel rodape = new JPanel(new BorderLayout());
         rodape.setOpaque(false);
@@ -146,13 +154,8 @@ public class CategoriaFormDialog extends JDialog {
         return rodape;
     }
 
-    private JButton criarBotaoSalvar() {
-        JButton salvarButton = new JButton("Salvar");
-        salvarButton.addActionListener(event -> salvar());
-        return salvarButton;
-    }
-
     private void salvar() {
+        mensagemLabel.setText(" ");
         String nome = nomeField.getText() != null ? nomeField.getText().trim() : "";
         TipoCategoria tipo = (TipoCategoria) tipoComboBox.getSelectedItem();
         String descricao = descricaoArea.getText();
@@ -169,8 +172,8 @@ public class CategoriaFormDialog extends JDialog {
             return;
         }
 
-        resultado = new DadosCategoriaForm(nome, tipo, descricao);
-        dispose();
+        setProcessando(true);
+        aoSalvar.accept(new DadosCategoriaForm(nome, tipo, descricao));
     }
 
     private void preencherDados(DadosCategoriaForm dadosIniciais) {
@@ -182,5 +185,35 @@ public class CategoriaFormDialog extends JDialog {
         nomeField.setText(dadosIniciais.nome());
         tipoComboBox.setSelectedItem(dadosIniciais.tipo());
         descricaoArea.setText(dadosIniciais.descricao());
+    }
+
+    void abrir() {
+        setVisible(true);
+    }
+
+    void fechar() {
+        setProcessando(false);
+        dispose();
+    }
+
+    void exibirErro(String mensagem) {
+        setProcessando(false);
+        mensagemLabel.setForeground(UiStyles.ERROR);
+        mensagemLabel.setText(mensagem != null && !mensagem.isBlank() ? mensagem : " ");
+    }
+
+    private void fecharSePermitido() {
+        if (!processando) {
+            dispose();
+        }
+    }
+
+    private void setProcessando(boolean processando) {
+        this.processando = processando;
+        nomeField.setEnabled(!processando);
+        tipoComboBox.setEnabled(!processando);
+        descricaoArea.setEnabled(!processando);
+        cancelarButton.setEnabled(!processando);
+        salvarButton.setEnabled(!processando);
     }
 }
