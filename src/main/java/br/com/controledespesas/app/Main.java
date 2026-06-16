@@ -14,17 +14,24 @@ public final class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Main().start());
+        new Main().launch();
     }
 
-    private void start() {
-        applySystemLookAndFeel();
-
+    private void launch() {
         if (!DatabaseConnection.testConnection()) {
             LOGGER.warning("Nao foi possivel estabelecer conexao inicial com o banco de dados.");
-            showConnectionErrorDialog();
+            SwingUtilities.invokeLater(() -> {
+                applySystemLookAndFeel();
+                showConnectionErrorDialog();
+            });
             return;
         }
+
+        SwingUtilities.invokeLater(this::startInterface);
+    }
+
+    private void startInterface() {
+        applySystemLookAndFeel();
 
         try {
             ApplicationContext applicationContext = new ApplicationContext();
