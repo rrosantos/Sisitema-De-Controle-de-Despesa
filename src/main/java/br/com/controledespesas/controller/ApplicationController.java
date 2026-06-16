@@ -65,6 +65,7 @@ public class ApplicationController {
                 applicationContext.getContaService(),
                 applicationContext.getCofrinhoService(),
                 applicationContext.getMovimentacaoCofrinhoService(),
+                applicationContext.getDashboardService(),
                 applicationContext.getAsyncTaskExecutor(),
                 mainFrame,
                 this

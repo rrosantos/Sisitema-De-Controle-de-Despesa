@@ -42,6 +42,7 @@ public class TransacaoController {
     private final SessaoUsuario sessaoUsuario;
     private final TransacaoView transacaoView;
     private final AsyncTaskExecutor asyncTaskExecutor;
+    private final DashboardRefreshNotifier dashboardRefreshNotifier;
 
     private List<Categoria> categoriasUsuario = List.of();
     private List<Conta> contasUsuario = List.of();
@@ -50,12 +51,31 @@ public class TransacaoController {
     public TransacaoController(TransacaoService transacaoService, CategoriaService categoriaService,
                                ContaService contaService, SessaoUsuario sessaoUsuario,
                                TransacaoView transacaoView, AsyncTaskExecutor asyncTaskExecutor) {
+        this(
+                transacaoService,
+                categoriaService,
+                contaService,
+                sessaoUsuario,
+                transacaoView,
+                asyncTaskExecutor,
+                DashboardRefreshNotifier.NO_OP
+        );
+    }
+
+    public TransacaoController(TransacaoService transacaoService, CategoriaService categoriaService,
+                               ContaService contaService, SessaoUsuario sessaoUsuario,
+                               TransacaoView transacaoView, AsyncTaskExecutor asyncTaskExecutor,
+                               DashboardRefreshNotifier dashboardRefreshNotifier) {
         this.transacaoService = Objects.requireNonNull(transacaoService, "transacaoService nao pode ser nulo.");
         this.categoriaService = Objects.requireNonNull(categoriaService, "categoriaService nao pode ser nulo.");
         this.contaService = Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.transacaoView = Objects.requireNonNull(transacaoView, "transacaoView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
+        this.dashboardRefreshNotifier = Objects.requireNonNull(
+                dashboardRefreshNotifier,
+                "dashboardRefreshNotifier nao pode ser nulo."
+        );
         configurarAcoes();
     }
 
@@ -226,6 +246,7 @@ public class TransacaoController {
         }
         if (resultado.mensagemSucesso() != null && !resultado.mensagemSucesso().isBlank()) {
             transacaoView.exibirMensagemSucesso(resultado.mensagemSucesso());
+            dashboardRefreshNotifier.marcarDashboardComoDesatualizado();
         }
     }
 

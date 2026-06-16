@@ -60,6 +60,7 @@ public class CofrinhoController {
     private final SessaoUsuario sessaoUsuario;
     private final CofrinhoView cofrinhoView;
     private final AsyncTaskExecutor asyncTaskExecutor;
+    private final DashboardRefreshNotifier dashboardRefreshNotifier;
 
     private List<CofrinhoResumo> todosResumos = List.of();
     private CofrinhoFiltro filtroAtual = new CofrinhoFiltro();
@@ -68,6 +69,20 @@ public class CofrinhoController {
     public CofrinhoController(CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
                               SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
                               AsyncTaskExecutor asyncTaskExecutor) {
+        this(
+                cofrinhoService,
+                movimentacaoCofrinhoService,
+                sessaoUsuario,
+                cofrinhoView,
+                asyncTaskExecutor,
+                DashboardRefreshNotifier.NO_OP
+        );
+    }
+
+    public CofrinhoController(CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
+                              SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
+                              AsyncTaskExecutor asyncTaskExecutor,
+                              DashboardRefreshNotifier dashboardRefreshNotifier) {
         this.cofrinhoService = Objects.requireNonNull(cofrinhoService, "cofrinhoService nao pode ser nulo.");
         this.movimentacaoCofrinhoService = Objects.requireNonNull(
                 movimentacaoCofrinhoService,
@@ -76,6 +91,10 @@ public class CofrinhoController {
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.cofrinhoView = Objects.requireNonNull(cofrinhoView, "cofrinhoView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
+        this.dashboardRefreshNotifier = Objects.requireNonNull(
+                dashboardRefreshNotifier,
+                "dashboardRefreshNotifier nao pode ser nulo."
+        );
         configurarAcoes();
     }
 
@@ -408,6 +427,7 @@ public class CofrinhoController {
         }
         if (mensagemSucesso != null && !mensagemSucesso.isBlank()) {
             cofrinhoView.exibirMensagemSucesso(mensagemSucesso);
+            dashboardRefreshNotifier.marcarDashboardComoDesatualizado();
         }
     }
 

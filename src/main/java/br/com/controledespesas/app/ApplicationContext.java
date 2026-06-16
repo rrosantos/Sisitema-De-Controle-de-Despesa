@@ -5,6 +5,7 @@ import br.com.controledespesas.controller.SwingWorkerAsyncTaskExecutor;
 import br.com.controledespesas.dao.CategoriaDAO;
 import br.com.controledespesas.dao.CofrinhoDAO;
 import br.com.controledespesas.dao.ContaDAO;
+import br.com.controledespesas.dao.DashboardDAO;
 import br.com.controledespesas.dao.MovimentacaoCofrinhoDAO;
 import br.com.controledespesas.dao.TransacaoDAO;
 import br.com.controledespesas.dao.UsuarioDAO;
@@ -15,6 +16,7 @@ import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.service.CategoriaService;
 import br.com.controledespesas.service.CofrinhoService;
 import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.service.DashboardService;
 import br.com.controledespesas.service.MovimentacaoCofrinhoService;
 import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.service.UsuarioService;
@@ -27,6 +29,7 @@ public class ApplicationContext {
     private final CategoriaDAO categoriaDAO;
     private final ContaDAO contaDAO;
     private final TransacaoDAO transacaoDAO;
+    private final DashboardDAO dashboardDAO;
     private final CofrinhoDAO cofrinhoDAO;
     private final MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO;
     private final PasswordHasher passwordHasher;
@@ -36,6 +39,7 @@ public class ApplicationContext {
     private final CategoriaService categoriaService;
     private final ContaService contaService;
     private final TransacaoService transacaoService;
+    private final DashboardService dashboardService;
     private final CofrinhoService cofrinhoService;
     private final MovimentacaoCofrinhoService movimentacaoCofrinhoService;
     private final AsyncTaskExecutor asyncTaskExecutor;
@@ -46,6 +50,7 @@ public class ApplicationContext {
         this.categoriaDAO = new CategoriaDAO();
         this.contaDAO = new ContaDAO();
         this.transacaoDAO = new TransacaoDAO();
+        this.dashboardDAO = new DashboardDAO(connectionProvider);
         this.cofrinhoDAO = new CofrinhoDAO();
         this.movimentacaoCofrinhoDAO = new MovimentacaoCofrinhoDAO();
         this.passwordHasher = new PasswordHasher();
@@ -55,6 +60,7 @@ public class ApplicationContext {
         this.categoriaService = new CategoriaService(categoriaDAO);
         this.contaService = new ContaService(contaDAO);
         this.transacaoService = new TransacaoService(transacaoDAO, categoriaDAO, contaDAO, connectionProvider);
+        this.dashboardService = new DashboardService(dashboardDAO);
         this.cofrinhoService = new CofrinhoService(cofrinhoDAO, movimentacaoCofrinhoDAO, connectionProvider);
         this.movimentacaoCofrinhoService =
                 new MovimentacaoCofrinhoService(movimentacaoCofrinhoDAO, cofrinhoDAO, connectionProvider);
@@ -89,6 +95,10 @@ public class ApplicationContext {
         return cofrinhoService;
     }
 
+    public DashboardService getDashboardService() {
+        return dashboardService;
+    }
+
     public MovimentacaoCofrinhoService getMovimentacaoCofrinhoService() {
         return movimentacaoCofrinhoService;
     }
@@ -115,6 +125,10 @@ public class ApplicationContext {
 
     public CofrinhoDAO getCofrinhoDAO() {
         return cofrinhoDAO;
+    }
+
+    public DashboardDAO getDashboardDAO() {
+        return dashboardDAO;
     }
 
     public MovimentacaoCofrinhoDAO getMovimentacaoCofrinhoDAO() {

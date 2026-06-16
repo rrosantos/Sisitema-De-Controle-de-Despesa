@@ -48,6 +48,9 @@ class CofrinhoControllerTest {
     @Mock
     private CofrinhoView cofrinhoView;
 
+    @Mock
+    private DashboardRefreshNotifier dashboardRefreshNotifier;
+
     private SessaoUsuario sessaoUsuario;
     private CofrinhoController cofrinhoController;
 
@@ -60,7 +63,8 @@ class CofrinhoControllerTest {
                 movimentacaoCofrinhoService,
                 sessaoUsuario,
                 cofrinhoView,
-                new ImmediateAsyncTaskExecutor()
+                new ImmediateAsyncTaskExecutor(),
+                dashboardRefreshNotifier
         );
         clearInvocations(cofrinhoView);
     }
@@ -137,6 +141,7 @@ class CofrinhoControllerTest {
         verify(cofrinhoView).exibirCofrinhos(argThat(resumos ->
                 resumos.size() == 1 && resumos.get(0).cofrinho().getId().equals(20L)
         ));
+        verify(dashboardRefreshNotifier).marcarDashboardComoDesatualizado();
     }
 
     @Test

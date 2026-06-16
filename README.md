@@ -341,6 +341,44 @@ Importante sobre integracao com contas:
 - Retirar de um cofrinho nao cria receita.
 - Qualquer integracao futura entre contas e cofrinhos exigira uma decisao de modelagem e ficou fora do escopo desta etapa.
 
+## Dashboard financeiro
+
+Nesta etapa, o antigo painel `Inicio` foi refatorado para funcionar como um dashboard real do usuario autenticado, reaproveitando a arquitetura MVC, o `CardLayout` da tela principal e a execucao assincrona ja existente no projeto.
+
+Periodo e atualizacao:
+
+- O periodo padrao do dashboard vai do primeiro dia do mes atual ate a data atual.
+- O filtro aceita `data inicial` e `data final` opcionais, com validacao de `data inicial <= data final`.
+- Foram adicionados atalhos para `Mes atual`, `Mes anterior`, `Ultimos 30 dias`, `Este ano` e `Limpar periodo`.
+- O carregamento acontece em segundo plano com `AsyncTaskExecutor`, sem bloquear o EDT.
+- Depois de alteracoes bem-sucedidas em `Transacoes`, `Contas` e `Cofrinhos`, o dashboard e apenas marcado como desatualizado; o recarregamento acontece ao voltar para `Inicio` ou ao usar o botao `Atualizar`.
+
+Indicadores principais:
+
+- `Saldo total das contas`: soma os saldos atuais de todas as contas do usuario, incluindo contas ativas e inativas.
+- `Receitas recebidas`: considera somente `tipo = RECEITA` e `status = RECEBIDO` dentro do periodo.
+- `Despesas pagas`: considera somente `tipo = DESPESA` e `status = PAGO` dentro do periodo.
+- `Resultado do periodo`: calcula `receitas recebidas - despesas pagas`, sempre com `BigDecimal`.
+- O dashboard tambem informa quantas contas estao ativas e quantas transacoes seguem pendentes.
+
+Seções do dashboard:
+
+- `Resumo das contas`: mostra ate cinco contas com nome, tipo, status e saldo atual, com atalho para o modulo completo de contas.
+- `Despesas por categoria`: mostra ate cinco categorias em barras horizontais simples, sem bibliotecas externas de grafico, com valor e percentual calculados.
+- `Transacoes recentes`: exibe uma tabela compacta com ate cinco registros do periodo, ordenados por data e `id` decrescentes.
+- `Cofrinhos e metas`: mostra metas priorizando as que estao em andamento e com prazo mais proximo, incluindo percentual, status e indicacao textual de atraso.
+
+Consultas e isolamento:
+
+- O dashboard usa `DashboardDAO` para consultas agregadas especificas, evitando N+1, consultas por linha e somas financeiras em memoria.
+- Todas as consultas continuam restritas por `usuario_id`.
+- A View nao acessa `Service` nem `DAO`, e o `Controller` do dashboard nao recebe `usuarioId` da interface.
+- O `DashboardService` apenas valida dados, normaliza valores nulos, calcula percentuais e monta DTOs imutaveis.
+
+Observacao importante:
+
+- Os valores dos cofrinhos sao controlados independentemente das contas. Portanto, o total guardado nas metas nao e descontado automaticamente do saldo das contas.
+
 Para iniciar a aplicacao:
 
 ```bash

@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,6 +46,9 @@ class MainControllerTest {
 
     @Mock
     private CofrinhoController cofrinhoController;
+
+    @Mock
+    private DashboardController dashboardController;
 
     @Mock
     private UsuarioDAO usuarioDAO;
@@ -90,8 +94,12 @@ class MainControllerTest {
         verify(mainView).definirAcaoContas(any(Runnable.class));
         verify(mainView).definirAcaoCofrinhos(any(Runnable.class));
         verify(mainView).definirAcaoSair(any(Runnable.class));
+        verify(dashboardController).definirAcaoAbrirTransacoes(any(Runnable.class));
+        verify(dashboardController).definirAcaoAbrirContas(any(Runnable.class));
+        verify(dashboardController).definirAcaoAbrirCofrinhos(any(Runnable.class));
         verify(mainView).mostrarPainel(MainController.PAINEL_INICIO);
         verify(mainView).definirMenuAtivo(MainController.PAINEL_INICIO);
+        verify(dashboardController).atualizarSeNecessario();
         verify(mainView).abrir();
         verify(transacaoController, never()).carregar();
         verify(categoriaController, never()).carregar();
@@ -175,6 +183,10 @@ class MainControllerTest {
     void shouldNavigateToTransactionsFromInicioCard() throws Exception {
         sessaoUsuario.iniciar(usuario());
         MainController mainController = novoMainController();
+        doAnswer(invocation -> {
+            mainController.mostrarTransacoes();
+            return null;
+        }).when(dashboardController).abrirTransacoes();
 
         mainController.iniciar();
         clearInvocations(mainView, transacaoController, categoriaController, contaController, cofrinhoController);
@@ -190,6 +202,10 @@ class MainControllerTest {
     void shouldNavigateToSavingsGoalsFromInicioCard() throws Exception {
         sessaoUsuario.iniciar(usuario());
         MainController mainController = novoMainController();
+        doAnswer(invocation -> {
+            mainController.mostrarCofrinhos();
+            return null;
+        }).when(dashboardController).abrirCofrinhos();
 
         mainController.iniciar();
         clearInvocations(mainView, transacaoController, categoriaController, contaController, cofrinhoController);
@@ -244,6 +260,7 @@ class MainControllerTest {
                 categoriaPanel,
                 contaPanel,
                 cofrinhoPanel,
+                dashboardController,
                 transacaoController,
                 categoriaController,
                 contaController,

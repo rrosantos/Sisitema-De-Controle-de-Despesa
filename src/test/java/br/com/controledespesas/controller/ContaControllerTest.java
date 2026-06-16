@@ -38,6 +38,9 @@ class ContaControllerTest {
     @Mock
     private ContaView contaView;
 
+    @Mock
+    private DashboardRefreshNotifier dashboardRefreshNotifier;
+
     private SessaoUsuario sessaoUsuario;
     private ContaController contaController;
 
@@ -49,7 +52,8 @@ class ContaControllerTest {
                 contaService,
                 sessaoUsuario,
                 contaView,
-                new ImmediateAsyncTaskExecutor()
+                new ImmediateAsyncTaskExecutor(),
+                dashboardRefreshNotifier
         );
         clearInvocations(contaView);
     }
@@ -114,6 +118,7 @@ class ContaControllerTest {
         verify(contaService).cadastrar(1L, "Carteira", TipoConta.CARTEIRA, null, new BigDecimal("0.00"));
         verify(contaView).fecharFormulario();
         verify(contaView).exibirMensagemSucesso("Conta cadastrada com sucesso.");
+        verify(dashboardRefreshNotifier).marcarDashboardComoDesatualizado();
     }
 
     @Test

@@ -6,6 +6,7 @@ import br.com.controledespesas.service.AutenticacaoService;
 import br.com.controledespesas.service.CategoriaService;
 import br.com.controledespesas.service.CofrinhoService;
 import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.service.DashboardService;
 import br.com.controledespesas.service.MovimentacaoCofrinhoService;
 import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.session.SessaoUsuario;
@@ -39,6 +40,7 @@ public class MainController {
     private final JPanel categoriaPanel;
     private final JPanel contaPanel;
     private final JPanel cofrinhoPanel;
+    private final DashboardController dashboardController;
     private final TransacaoController transacaoController;
     private final CategoriaController categoriaController;
     private final ContaController contaController;
@@ -49,6 +51,7 @@ public class MainController {
     public MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
                           TransacaoService transacaoService, CategoriaService categoriaService, ContaService contaService,
                           CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
+                          DashboardService dashboardService,
                           AsyncTaskExecutor asyncTaskExecutor, MainView mainView,
                           ApplicationController applicationController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
@@ -61,9 +64,16 @@ public class MainController {
         Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
         Objects.requireNonNull(cofrinhoService, "cofrinhoService nao pode ser nulo.");
         Objects.requireNonNull(movimentacaoCofrinhoService, "movimentacaoCofrinhoService nao pode ser nulo.");
+        Objects.requireNonNull(dashboardService, "dashboardService nao pode ser nulo.");
         Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
 
         this.inicioPanel = new InicioPanel();
+        this.dashboardController = new DashboardController(
+                dashboardService,
+                sessaoUsuario,
+                inicioPanel,
+                asyncTaskExecutor
+        );
 
         TransacaoPanel transacaoPanelConcreto = new TransacaoPanel();
         this.transacaoPanel = transacaoPanelConcreto;
@@ -73,7 +83,8 @@ public class MainController {
                 contaService,
                 sessaoUsuario,
                 transacaoPanelConcreto,
-                asyncTaskExecutor
+                asyncTaskExecutor,
+                dashboardController
         );
 
         CategoriaPanel categoriaPanelConcreto = new CategoriaPanel();
@@ -84,7 +95,7 @@ public class MainController {
         ContaPanel contaPanelConcreto = new ContaPanel();
         this.contaPanel = contaPanelConcreto;
         this.contaController =
-                new ContaController(contaService, sessaoUsuario, contaPanelConcreto, asyncTaskExecutor);
+                new ContaController(contaService, sessaoUsuario, contaPanelConcreto, asyncTaskExecutor, dashboardController);
 
         CofrinhoPanel cofrinhoPanelConcreto = new CofrinhoPanel();
         this.cofrinhoPanel = cofrinhoPanelConcreto;
@@ -93,7 +104,8 @@ public class MainController {
                 movimentacaoCofrinhoService,
                 sessaoUsuario,
                 cofrinhoPanelConcreto,
-                asyncTaskExecutor
+                asyncTaskExecutor,
+                dashboardController
         );
     }
 
@@ -101,6 +113,7 @@ public class MainController {
                    MainView mainView, ApplicationController applicationController,
                    InicioPanel inicioPanel, JPanel transacaoPanel, JPanel categoriaPanel, JPanel contaPanel,
                    JPanel cofrinhoPanel,
+                   DashboardController dashboardController,
                    TransacaoController transacaoController, CategoriaController categoriaController,
                    ContaController contaController, CofrinhoController cofrinhoController) {
         this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
@@ -113,6 +126,7 @@ public class MainController {
         this.categoriaPanel = Objects.requireNonNull(categoriaPanel, "categoriaPanel nao pode ser nulo.");
         this.contaPanel = Objects.requireNonNull(contaPanel, "contaPanel nao pode ser nulo.");
         this.cofrinhoPanel = Objects.requireNonNull(cofrinhoPanel, "cofrinhoPanel nao pode ser nulo.");
+        this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController nao pode ser nulo.");
         this.transacaoController = Objects.requireNonNull(
                 transacaoController,
                 "transacaoController nao pode ser nulo."
@@ -142,6 +156,7 @@ public class MainController {
         inicioPanel.exibirUsuario(usuario.getNome());
         mainView.mostrarPainel(PAINEL_INICIO);
         mainView.definirMenuAtivo(PAINEL_INICIO);
+        dashboardController.atualizarSeNecessario();
     }
 
     public void mostrarCategorias() {
@@ -209,10 +224,13 @@ public class MainController {
         mainView.definirAcaoContas(this::mostrarContas);
         mainView.definirAcaoCofrinhos(this::mostrarCofrinhos);
         mainView.definirAcaoSair(this::realizarLogout);
-        inicioPanel.definirAcaoTransacoes(this::mostrarTransacoes);
+        dashboardController.definirAcaoAbrirTransacoes(this::mostrarTransacoes);
+        dashboardController.definirAcaoAbrirContas(this::mostrarContas);
+        dashboardController.definirAcaoAbrirCofrinhos(this::mostrarCofrinhos);
+        inicioPanel.definirAcaoTransacoes(dashboardController::abrirTransacoes);
         inicioPanel.definirAcaoCategorias(this::mostrarCategorias);
-        inicioPanel.definirAcaoContas(this::mostrarContas);
-        inicioPanel.definirAcaoCofrinhos(this::mostrarCofrinhos);
+        inicioPanel.definirAcaoContas(dashboardController::abrirContas);
+        inicioPanel.definirAcaoCofrinhos(dashboardController::abrirCofrinhos);
         componentesRegistrados = true;
     }
 

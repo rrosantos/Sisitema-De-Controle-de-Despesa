@@ -37,13 +37,24 @@ public class ContaController {
     private final SessaoUsuario sessaoUsuario;
     private final ContaView contaView;
     private final AsyncTaskExecutor asyncTaskExecutor;
+    private final DashboardRefreshNotifier dashboardRefreshNotifier;
 
     public ContaController(ContaService contaService, SessaoUsuario sessaoUsuario,
                            ContaView contaView, AsyncTaskExecutor asyncTaskExecutor) {
+        this(contaService, sessaoUsuario, contaView, asyncTaskExecutor, DashboardRefreshNotifier.NO_OP);
+    }
+
+    public ContaController(ContaService contaService, SessaoUsuario sessaoUsuario,
+                           ContaView contaView, AsyncTaskExecutor asyncTaskExecutor,
+                           DashboardRefreshNotifier dashboardRefreshNotifier) {
         this.contaService = Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.contaView = Objects.requireNonNull(contaView, "contaView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
+        this.dashboardRefreshNotifier = Objects.requireNonNull(
+                dashboardRefreshNotifier,
+                "dashboardRefreshNotifier nao pode ser nulo."
+        );
         configurarAcoes();
     }
 
@@ -192,6 +203,7 @@ public class ContaController {
         }
         if (resultado.mensagemSucesso() != null && !resultado.mensagemSucesso().isBlank()) {
             contaView.exibirMensagemSucesso(resultado.mensagemSucesso());
+            dashboardRefreshNotifier.marcarDashboardComoDesatualizado();
         }
     }
 

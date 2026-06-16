@@ -52,6 +52,9 @@ class TransacaoControllerTest {
     @Mock
     private TransacaoView transacaoView;
 
+    @Mock
+    private DashboardRefreshNotifier dashboardRefreshNotifier;
+
     private SessaoUsuario sessaoUsuario;
     private TransacaoController transacaoController;
 
@@ -65,7 +68,8 @@ class TransacaoControllerTest {
                 contaService,
                 sessaoUsuario,
                 transacaoView,
-                new ImmediateAsyncTaskExecutor()
+                new ImmediateAsyncTaskExecutor(),
+                dashboardRefreshNotifier
         );
         clearInvocations(transacaoView);
     }
@@ -188,6 +192,7 @@ class TransacaoControllerTest {
         );
         verify(transacaoView).fecharFormulario();
         verify(transacaoView).exibirMensagemSucesso("Transacao cadastrada com sucesso.");
+        verify(dashboardRefreshNotifier).marcarDashboardComoDesatualizado();
     }
 
     @Test
