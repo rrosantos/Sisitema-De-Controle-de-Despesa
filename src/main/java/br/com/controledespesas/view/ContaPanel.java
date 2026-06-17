@@ -36,7 +36,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -48,8 +47,12 @@ public class ContaPanel extends JPanel implements ContaView {
     private static final int COLUMN_ACTIONS = 6;
 
     private final JButton novaContaButton;
+    private final JButton filtrarButton;
+    private final JButton limparFiltrosButton;
     private final JComboBox<String> filtroTipoComboBox;
     private final JComboBox<String> filtroStatusComboBox;
+    private final JComboBox<CampoPesquisaConta> campoPesquisaComboBox;
+    private final JComboBox<OrdenacaoConta> ordenacaoComboBox;
     private final JTextField pesquisaField;
     private final JLabel mensagemLabel;
     private final ContaTableModel tableModel;
@@ -58,6 +61,7 @@ public class ContaPanel extends JPanel implements ContaView {
     private final JPanel contentPanel;
     private final EmptyStatePanel emptyStatePanel;
     private final MoneyFormatter moneyFormatter;
+    private final ContaListSupport contaListSupport;
 
     private final List<Conta> contasOriginais = new ArrayList<>();
     private final Map<Long, BigDecimal> saldos = new HashMap<>();
@@ -75,10 +79,14 @@ public class ContaPanel extends JPanel implements ContaView {
 
         moneyFormatter = new MoneyFormatter();
         novaContaButton = new JButton("Nova conta");
+        filtrarButton = new JButton("Filtrar");
+        limparFiltrosButton = new JButton("Limpar filtros");
         filtroTipoComboBox = new JComboBox<>(new String[]{
                 "Todos", "Carteira", "Conta-corrente", "Poupanca", "Conta digital", "Outro"
         });
         filtroStatusComboBox = new JComboBox<>(new String[]{"Todas", "Ativas", "Inativas"});
+        campoPesquisaComboBox = new JComboBox<>(CampoPesquisaConta.values());
+        ordenacaoComboBox = new JComboBox<>(OrdenacaoConta.values());
         pesquisaField = new JTextField();
         mensagemLabel = UiStyles.createMessageLabel();
         tableModel = new ContaTableModel(moneyFormatter);
@@ -90,9 +98,17 @@ public class ContaPanel extends JPanel implements ContaView {
                 "Cadastre uma conta, carteira ou poupanca para organizar seu dinheiro.",
                 "Nova conta"
         );
+        contaListSupport = new ContaListSupport();
 
         UiStyles.stylePrimaryButton(novaContaButton);
+        UiStyles.stylePrimaryButton(filtrarButton);
+        UiStyles.styleSecondaryButton(limparFiltrosButton);
         UiStyles.styleTextComponent(pesquisaField);
+        UiStyles.styleComboBox(filtroTipoComboBox);
+        UiStyles.styleComboBox(filtroStatusComboBox);
+        UiStyles.styleComboBox(campoPesquisaComboBox);
+        UiStyles.styleComboBox(ordenacaoComboBox);
+        configurarNomesComponentes();
         emptyStatePanel.setAcao(this::executarNovaConta);
 
         add(criarCabecalho(), BorderLayout.NORTH);
@@ -117,16 +133,19 @@ public class ContaPanel extends JPanel implements ContaView {
         if (saldos != null) {
             this.saldos.putAll(saldos);
         }
-        tableModel.atualizarSaldos(this.saldos);
-        atualizarEstadoConteudo();
+        aplicarFiltros();
     }
 
     @Override
     public void exibirCarregamento(boolean carregando) {
         this.carregando = carregando;
         novaContaButton.setEnabled(!carregando);
+        filtrarButton.setEnabled(!carregando);
+        limparFiltrosButton.setEnabled(!carregando);
         filtroTipoComboBox.setEnabled(!carregando);
         filtroStatusComboBox.setEnabled(!carregando);
+        campoPesquisaComboBox.setEnabled(!carregando);
+        ordenacaoComboBox.setEnabled(!carregando);
         pesquisaField.setEnabled(!carregando);
         tabela.setEnabled(!carregando);
         atualizarEstadoConteudo();
@@ -269,11 +288,17 @@ public class ContaPanel extends JPanel implements ContaView {
         JPanel filtros = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filtros.setOpaque(false);
 
-        pesquisaField.setPreferredSize(new Dimension(220, 40));
+        campoPesquisaComboBox.setPreferredSize(new Dimension(150, 40));
+        pesquisaField.setPreferredSize(new Dimension(240, 40));
+        ordenacaoComboBox.setPreferredSize(new Dimension(190, 40));
 
         filtros.add(criarLabeled("Tipo", filtroTipoComboBox));
         filtros.add(criarLabeled("Status", filtroStatusComboBox));
-        filtros.add(criarLabeled("Pesquisar por nome ou instituicao", pesquisaField));
+        filtros.add(criarLabeled("Pesquisar por", campoPesquisaComboBox));
+        filtros.add(criarLabeled("Termo", pesquisaField));
+        filtros.add(criarLabeled("Ordenar por", ordenacaoComboBox));
+        filtros.add(filtrarButton);
+        filtros.add(limparFiltrosButton);
         return filtros;
     }
 
@@ -350,6 +375,11 @@ public class ContaPanel extends JPanel implements ContaView {
     private void configurarFiltros() {
         filtroTipoComboBox.addActionListener(event -> aplicarFiltros());
         filtroStatusComboBox.addActionListener(event -> aplicarFiltros());
+        campoPesquisaComboBox.addActionListener(event -> aplicarFiltros());
+        ordenacaoComboBox.addActionListener(event -> aplicarFiltros());
+        filtrarButton.addActionListener(event -> aplicarFiltros());
+        limparFiltrosButton.addActionListener(event -> limparFiltros());
+        pesquisaField.addActionListener(event -> aplicarFiltros());
         pesquisaField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -369,58 +399,77 @@ public class ContaPanel extends JPanel implements ContaView {
     }
 
     private void aplicarFiltros() {
-        List<Conta> filtradas = contasOriginais.stream()
-                .filter(this::filtrarPorTipo)
-                .filter(this::filtrarPorStatus)
-                .filter(this::filtrarPorPesquisa)
-                .toList();
+        List<Conta> filtradas = contaListSupport.filtrarEOrdenar(
+                contasOriginais,
+                saldos,
+                obterCampoPesquisaSelecionado(),
+                pesquisaField.getText(),
+                obterTipoSelecionado(),
+                obterStatusSelecionado(),
+                obterOrdenacaoSelecionada()
+        );
 
         tableModel.atualizarContas(filtradas);
         tableModel.atualizarSaldos(saldos);
         atualizarEstadoConteudo();
     }
 
-    private boolean filtrarPorTipo(Conta conta) {
+    private TipoConta obterTipoSelecionado() {
         String filtro = (String) filtroTipoComboBox.getSelectedItem();
         if ("Carteira".equals(filtro)) {
-            return conta.getTipo() == TipoConta.CARTEIRA;
+            return TipoConta.CARTEIRA;
         }
         if ("Conta-corrente".equals(filtro)) {
-            return conta.getTipo() == TipoConta.CONTA_CORRENTE;
+            return TipoConta.CONTA_CORRENTE;
         }
         if ("Poupanca".equals(filtro)) {
-            return conta.getTipo() == TipoConta.POUPANCA;
+            return TipoConta.POUPANCA;
         }
         if ("Conta digital".equals(filtro)) {
-            return conta.getTipo() == TipoConta.CONTA_DIGITAL;
+            return TipoConta.CONTA_DIGITAL;
         }
         if ("Outro".equals(filtro)) {
-            return conta.getTipo() == TipoConta.OUTRO;
+            return TipoConta.OUTRO;
         }
-        return true;
+        return null;
     }
 
-    private boolean filtrarPorStatus(Conta conta) {
+    private Boolean obterStatusSelecionado() {
         String filtro = (String) filtroStatusComboBox.getSelectedItem();
         if ("Ativas".equals(filtro)) {
-            return conta.isAtivo();
+            return Boolean.TRUE;
         }
         if ("Inativas".equals(filtro)) {
-            return !conta.isAtivo();
+            return Boolean.FALSE;
         }
-        return true;
+        return null;
     }
 
-    private boolean filtrarPorPesquisa(Conta conta) {
-        String termo = pesquisaField.getText();
-        if (termo == null || termo.isBlank()) {
-            return true;
-        }
+    private CampoPesquisaConta obterCampoPesquisaSelecionado() {
+        CampoPesquisaConta campo = (CampoPesquisaConta) campoPesquisaComboBox.getSelectedItem();
+        return campo != null ? campo : CampoPesquisaConta.NOME;
+    }
 
-        String termoNormalizado = termo.trim().toLowerCase(Locale.ROOT);
-        return conta.getNome().toLowerCase(Locale.ROOT).contains(termoNormalizado)
-                || (conta.getInstituicao() != null
-                && conta.getInstituicao().toLowerCase(Locale.ROOT).contains(termoNormalizado));
+    private OrdenacaoConta obterOrdenacaoSelecionada() {
+        OrdenacaoConta ordenacao = (OrdenacaoConta) ordenacaoComboBox.getSelectedItem();
+        return ordenacao != null ? ordenacao : OrdenacaoConta.NOME_CRESCENTE;
+    }
+
+    private void limparFiltros() {
+        if (campoPesquisaComboBox.getItemCount() > 0) {
+            campoPesquisaComboBox.setSelectedItem(CampoPesquisaConta.NOME);
+        }
+        pesquisaField.setText("");
+        if (filtroTipoComboBox.getItemCount() > 0) {
+            filtroTipoComboBox.setSelectedIndex(0);
+        }
+        if (filtroStatusComboBox.getItemCount() > 0) {
+            filtroStatusComboBox.setSelectedIndex(0);
+        }
+        if (ordenacaoComboBox.getItemCount() > 0) {
+            ordenacaoComboBox.setSelectedItem(OrdenacaoConta.NOME_CRESCENTE);
+        }
+        aplicarFiltros();
     }
 
     private void mostrarMenuAcoes(Conta conta, Component component, int x, int y) {
@@ -454,6 +503,7 @@ public class ContaPanel extends JPanel implements ContaView {
     private JButton criarMenuButton(String texto, Runnable acao) {
         JButton button = new JButton(texto);
         button.setHorizontalAlignment(JButton.LEFT);
+        UiStyles.styleSecondaryButton(button);
         button.addActionListener(event -> acao.run());
         return button;
     }
@@ -487,6 +537,18 @@ public class ContaPanel extends JPanel implements ContaView {
         if (novaContaAction != null) {
             novaContaAction.run();
         }
+    }
+
+    private void configurarNomesComponentes() {
+        novaContaButton.setName("novaContaButton");
+        filtrarButton.setName("filtrarContasButton");
+        limparFiltrosButton.setName("limparFiltrosContasButton");
+        filtroTipoComboBox.setName("filtroTipoContaComboBox");
+        filtroStatusComboBox.setName("filtroStatusContaComboBox");
+        campoPesquisaComboBox.setName("campoPesquisaContaComboBox");
+        ordenacaoComboBox.setName("ordenacaoContaComboBox");
+        pesquisaField.setName("termoPesquisaContaField");
+        tabela.setName("contasTable");
     }
 
     private void abrirFormulario(String titulo, DadosContaForm dadosIniciais, Consumer<DadosContaForm> aoSalvar) {

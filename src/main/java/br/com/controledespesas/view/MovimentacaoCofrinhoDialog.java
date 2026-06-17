@@ -89,6 +89,8 @@ public class MovimentacaoCofrinhoDialog extends JDialog {
         UiStyles.styleTextComponent(dataField);
 
         observacaoArea.setFont(UiStyles.TEXT_FONT);
+        observacaoArea.setBackground(UiStyles.WHITE);
+        observacaoArea.setForeground(UiStyles.TEXT_PRIMARY);
         observacaoArea.setLineWrap(true);
         observacaoArea.setWrapStyleWord(true);
         observacaoArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));

@@ -105,6 +105,8 @@ public class CofrinhoPanel extends JPanel implements CofrinhoView {
         UiStyles.stylePrimaryButton(filtrarButton);
         UiStyles.styleSecondaryButton(limparFiltrosButton);
         UiStyles.styleTextComponent(pesquisaField);
+        UiStyles.styleComboBox(statusComboBox);
+        UiStyles.styleComboBox(prazoComboBox);
         emptyStatePanel.setAcao(this::executarNovoCofrinho);
 
         cardsContainer.setOpaque(false);

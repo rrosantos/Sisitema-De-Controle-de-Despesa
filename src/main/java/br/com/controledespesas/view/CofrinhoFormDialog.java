@@ -90,6 +90,8 @@ public class CofrinhoFormDialog extends JDialog {
         UiStyles.styleTextComponent(dataLimiteField);
 
         descricaoArea.setFont(UiStyles.TEXT_FONT);
+        descricaoArea.setBackground(UiStyles.WHITE);
+        descricaoArea.setForeground(UiStyles.TEXT_PRIMARY);
         descricaoArea.setLineWrap(true);
         descricaoArea.setWrapStyleWord(true);
         descricaoArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));

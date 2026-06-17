@@ -117,14 +117,25 @@ public class TransacaoFormDialog extends JDialog {
         UiStyles.styleTextComponent(descricaoField);
         UiStyles.styleTextComponent(valorField);
         UiStyles.styleTextComponent(dataField);
+        UiStyles.styleComboBox(tipoComboBox);
+        UiStyles.styleComboBox(categoriaComboBox);
+        UiStyles.styleComboBox(contaComboBox);
+        UiStyles.styleComboBox(statusComboBox);
 
         observacoesArea.setFont(UiStyles.TEXT_FONT);
+        observacoesArea.setBackground(UiStyles.WHITE);
+        observacoesArea.setForeground(UiStyles.TEXT_PRIMARY);
         observacoesArea.setLineWrap(true);
         observacoesArea.setWrapStyleWord(true);
         observacoesArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         JScrollPane observacoesScrollPane = new JScrollPane(observacoesArea);
-        observacoesScrollPane.setBorder(UiStyles.createInputBorder());
+        observacoesScrollPane.setBackground(UiStyles.WHITE);
+        observacoesScrollPane.setOpaque(true);
+        observacoesScrollPane.getViewport().setBackground(UiStyles.WHITE);
+        observacoesScrollPane.getViewport().setOpaque(true);
+        observacoesScrollPane.setViewportBorder(null);
+        observacoesScrollPane.setBorder(BorderFactory.createLineBorder(UiStyles.BORDER));
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);

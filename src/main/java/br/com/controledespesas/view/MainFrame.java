@@ -314,9 +314,11 @@ public class MainFrame extends JFrame implements MainView {
             return;
         }
 
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         button.setFont(new Font(Font.SANS_SERIF, ativo ? Font.BOLD : Font.PLAIN, 14));
-        button.setBackground(ativo ? UiStyles.PRIMARY : UiStyles.BACKGROUND);
-        button.setForeground(ativo ? UiStyles.WHITE : UiStyles.TEXT_PRIMARY);
+        button.setBackground(UiStyles.WHITE);
+        button.setForeground(ativo ? UiStyles.PRIMARY_DARK : UiStyles.TEXT_PRIMARY);
+        button.setContentAreaFilled(true);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(ativo ? UiStyles.PRIMARY : UiStyles.BORDER),
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)
@@ -325,9 +327,11 @@ public class MainFrame extends JFrame implements MainView {
     }
 
     private void aplicarEstiloPlaceholder(JButton button) {
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         button.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
-        button.setBackground(UiStyles.BACKGROUND);
+        button.setBackground(UiStyles.WHITE);
         button.setForeground(UiStyles.TEXT_SECONDARY);
+        button.setContentAreaFilled(true);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UiStyles.BORDER),
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)

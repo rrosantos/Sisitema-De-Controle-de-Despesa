@@ -85,6 +85,8 @@ public class CategoriaPanel extends JPanel implements CategoriaView {
 
         UiStyles.stylePrimaryButton(novaCategoriaButton);
         UiStyles.styleTextComponent(pesquisaField);
+        UiStyles.styleComboBox(filtroTipoComboBox);
+        UiStyles.styleComboBox(filtroStatusComboBox);
         emptyStatePanel.setAcao(this::executarNovaCategoria);
 
         add(criarCabecalho(), BorderLayout.NORTH);
@@ -425,6 +427,7 @@ public class CategoriaPanel extends JPanel implements CategoriaView {
     private JButton criarMenuButton(String texto, Runnable acao) {
         JButton button = new JButton(texto);
         button.setHorizontalAlignment(JButton.LEFT);
+        UiStyles.styleSecondaryButton(button);
         button.addActionListener(event -> acao.run());
         return button;
     }

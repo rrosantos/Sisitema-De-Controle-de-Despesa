@@ -7,7 +7,8 @@ Aplicacao desktop em Java 21 com Swing, JDBC e MySQL para controle de receitas, 
 - Cadastro e login com senha protegida por BCrypt.
 - Isolamento completo dos dados por `usuario_id`.
 - CRUD de categorias de receita e despesa.
-- CRUD de contas com saldo inicial persistido e saldo atual calculado.
+- CRUD de contas com saldo inicial persistido, saldo atual calculado, pesquisa por campo e listagem com ordenacao explicita.
+- A listagem de contas pode ser ordenada por nome crescente, nome decrescente, maior saldo atual ou menor saldo atual.
 - CRUD de transacoes com filtros, resumo do periodo e validacoes por tipo e status.
 - CRUD de cofrinhos com depositos, retiradas, historico e progresso de meta.
 - Dashboard financeiro com indicadores, atalhos de periodo e visoes resumidas.

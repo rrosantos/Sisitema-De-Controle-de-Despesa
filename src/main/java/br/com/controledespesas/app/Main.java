@@ -2,6 +2,7 @@ package br.com.controledespesas.app;
 
 import br.com.controledespesas.controller.ApplicationController;
 import br.com.controledespesas.database.DatabaseConnection;
+import br.com.controledespesas.view.UiStyles;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -64,5 +65,6 @@ public final class Main {
         } catch (Exception exception) {
             LOGGER.log(Level.FINE, "Nao foi possivel aplicar o look and feel nativo.", exception);
         }
+        UiStyles.applyLightComponentDefaults();
     }
 }

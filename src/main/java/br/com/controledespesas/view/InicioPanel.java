@@ -12,22 +12,27 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.Scrollable;
+import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Rectangle;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -36,6 +41,18 @@ public class InicioPanel extends JPanel implements DashboardView {
     private static final String ESTADO_CONTEUDO = "conteudo";
     private static final String ESTADO_VAZIO = "vazio";
     private static final String ESTADO_CARREGANDO = "carregando";
+
+    private static final Color FUNDO_DASHBOARD = new Color(0xF5F7FB);
+    private static final Color FUNDO_SUAVE = new Color(0xF8FAFC);
+    private static final Color FUNDO_DESTAQUE = new Color(0xEEF4FF);
+    private static final Color AZUL_DESTAQUE = new Color(0x2F6FED);
+    private static final Color FUNDO_ERRO = new Color(0xFFF1F2);
+    private static final Color BORDA_ERRO = new Color(0xFECACA);
+    private static final Color FUNDO_CABECALHO_TABELA = new Color(0xF1F5F9);
+    private static final Color FUNDO_SELECAO_TABELA = new Color(0xE8F0FF);
+
+    private static final int ESPACAMENTO_SECAO = 18;
+    private static final int ALTURA_SECAO = 336;
 
     private final JLabel boasVindasLabel;
     private final JLabel periodoAtualLabel;
@@ -82,30 +99,31 @@ public class InicioPanel extends JPanel implements DashboardView {
 
     public InicioPanel() {
         setLayout(new BorderLayout());
-        setOpaque(false);
+        setOpaque(true);
+        setBackground(FUNDO_DASHBOARD);
 
-        boasVindasLabel = new JLabel("Bem-vinda(o), Usuario.");
-        periodoAtualLabel = new JLabel("Periodo: aguardando carregamento");
+        boasVindasLabel = new JLabel("Bem-vinda(o), Usuário");
+        periodoAtualLabel = new JLabel("Período: aguardando carregamento");
         statusCarregamentoLabel = new JLabel(" ");
         erroLabel = new JLabel(" ");
         dataInicialField = new JTextField(10);
         dataFinalField = new JTextField(10);
         aplicarFiltroButton = new JButton("Aplicar filtro");
         atualizarButton = new JButton("Atualizar");
-        mesAtualButton = new JButton("Mes atual");
-        mesAnteriorButton = new JButton("Mes anterior");
-        ultimosTrintaDiasButton = new JButton("Ultimos 30 dias");
+        mesAtualButton = new JButton("Mês atual");
+        mesAnteriorButton = new JButton("Mês anterior");
+        ultimosTrintaDiasButton = new JButton("Últimos 30 dias");
         esteAnoButton = new JButton("Este ano");
-        limparPeriodoButton = new JButton("Limpar periodo");
+        limparPeriodoButton = new JButton("Limpar período");
         tentarNovamenteButton = new JButton("Tentar novamente");
-        transacoesButton = new JButton("Ver todas as transacoes");
+        transacoesButton = new JButton("Ver transações");
         categoriasButton = new JButton("Abrir categorias");
-        contasButton = new JButton("Ver todas as contas");
-        cofrinhosButton = new JButton("Ver todos os cofrinhos");
+        contasButton = new JButton("Ver contas");
+        cofrinhosButton = new JButton("Ver cofrinhos");
         saldoTotalCard = new DashboardSummaryCard("Saldo total das contas");
         receitasCard = new DashboardSummaryCard("Receitas recebidas");
         despesasCard = new DashboardSummaryCard("Despesas pagas");
-        resultadoCard = new DashboardSummaryCard("Resultado do periodo");
+        resultadoCard = new DashboardSummaryCard("Resultado do período");
         transacoesTableModel = new TransacaoRecenteDashboardTableModel();
         transacoesTable = new JTable(transacoesTableModel);
         contasBodyLayout = new CardLayout();
@@ -131,8 +149,8 @@ public class InicioPanel extends JPanel implements DashboardView {
     }
 
     public void exibirUsuario(String nome) {
-        String nomeSeguro = nome != null && !nome.isBlank() ? nome : "Usuario";
-        boasVindasLabel.setText("Bem-vinda(o), " + nomeSeguro + ".");
+        String nomeSeguro = nome != null && !nome.isBlank() ? nome : "Usuário";
+        boasVindasLabel.setText("Bem-vinda(o), " + nomeSeguro);
     }
 
     public void definirAcaoCategorias(Runnable acao) {
@@ -154,29 +172,31 @@ public class InicioPanel extends JPanel implements DashboardView {
     @Override
     public void exibirResumo(DashboardResumo resumo) {
         ultimoResumo = resumo;
-        periodoAtualLabel.setText("Periodo: " + DashboardViewSupport.formatarPeriodo(resumo.dataInicial(), resumo.dataFinal()));
+        periodoAtualLabel.setText(
+                "Período: " + DashboardViewSupport.formatarPeriodo(resumo.dataInicial(), resumo.dataFinal())
+        );
 
         saldoTotalCard.atualizar(
                 DashboardViewSupport.formatarMoeda(resumo.saldoTotal()),
                 resumo.contasAtivas() + " conta(s) ativa(s)",
-                "Inclui contas ativas e inativas no saldo historico.",
+                "Inclui contas ativas e inativas no saldo histórico.",
                 UiStyles.TEXT_PRIMARY
         );
         receitasCard.atualizar(
                 DashboardViewSupport.formatarMoeda(resumo.totalReceitas()),
-                "Somente receitas recebidas no periodo.",
-                "Pendentes e canceladas nao entram no total.",
+                "Somente receitas recebidas no período.",
+                "Pendentes e canceladas não entram no total.",
                 UiStyles.SUCCESS
         );
         despesasCard.atualizar(
                 DashboardViewSupport.formatarMoeda(resumo.totalDespesas()),
-                "Somente despesas pagas no periodo.",
-                "Pendentes e canceladas nao entram no total.",
+                "Somente despesas pagas no período.",
+                "Pendentes e canceladas não entram no total.",
                 UiStyles.ERROR
         );
         resultadoCard.atualizar(
                 DashboardViewSupport.formatarResultado(resumo.resultadoPeriodo()),
-                resumo.transacoesPendentes() + " transacao(oes) pendente(s)",
+                resumo.transacoesPendentes() + " transação(ões) pendente(s)",
                 "Resultado = receitas recebidas - despesas pagas.",
                 DashboardViewSupport.corResultado(resumo.resultadoPeriodo())
         );
@@ -191,13 +211,13 @@ public class InicioPanel extends JPanel implements DashboardView {
     @Override
     public void exibirCarregamento(boolean carregando) {
         atualizarEstadoControles(carregando);
-        statusCarregamentoLabel.setText(carregando ? "Carregando resumo financeiro..." : " ");
+        statusCarregamentoLabel.setText(carregando ? "Atualizando resumo financeiro..." : " ");
 
         if (carregando && ultimoResumo == null) {
-            saldoTotalCard.atualizar("\u2014", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
-            receitasCard.atualizar("\u2014", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
-            despesasCard.atualizar("\u2014", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
-            resultadoCard.atualizar("\u2014", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
+            saldoTotalCard.atualizar("—", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
+            receitasCard.atualizar("—", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
+            despesasCard.atualizar("—", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
+            resultadoCard.atualizar("—", "Carregando dados...", " ", UiStyles.TEXT_PRIMARY);
             contasBodyLayout.show(contasBodyPanel, ESTADO_CARREGANDO);
             categoriasBodyLayout.show(categoriasBodyPanel, ESTADO_CARREGANDO);
             transacoesBodyLayout.show(transacoesBodyPanel, ESTADO_CARREGANDO);
@@ -214,14 +234,22 @@ public class InicioPanel extends JPanel implements DashboardView {
 
     @Override
     public void exibirMensagemErro(String mensagem) {
-        erroLabel.setText(mensagem != null && !mensagem.isBlank() ? mensagem : "Nao foi possivel carregar o dashboard.");
+        erroLabel.setText(
+                mensagem != null && !mensagem.isBlank()
+                        ? mensagem
+                        : "Não foi possível carregar o dashboard."
+        );
         erroPanel.setVisible(true);
+        erroPanel.revalidate();
+        erroPanel.repaint();
     }
 
     @Override
     public void limparErro() {
         erroLabel.setText(" ");
         erroPanel.setVisible(false);
+        erroPanel.revalidate();
+        erroPanel.repaint();
     }
 
     @Override
@@ -238,7 +266,9 @@ public class InicioPanel extends JPanel implements DashboardView {
     public void definirPeriodo(LocalDate dataInicial, LocalDate dataFinal) {
         dataInicialField.setText(DateFormatter.format(dataInicial));
         dataFinalField.setText(DateFormatter.format(dataFinal));
-        periodoAtualLabel.setText("Periodo: " + DashboardViewSupport.formatarPeriodo(dataInicial, dataFinal));
+        periodoAtualLabel.setText(
+                "Período: " + DashboardViewSupport.formatarPeriodo(dataInicial, dataFinal)
+        );
     }
 
     @Override
@@ -300,6 +330,11 @@ public class InicioPanel extends JPanel implements DashboardView {
         UiStyles.styleTextComponent(dataInicialField);
         UiStyles.styleTextComponent(dataFinalField);
 
+        dataInicialField.setPreferredSize(new Dimension(128, 38));
+        dataFinalField.setPreferredSize(new Dimension(128, 38));
+        dataInicialField.setToolTipText("Informe a data no formato dd/MM/aaaa");
+        dataFinalField.setToolTipText("Informe a data no formato dd/MM/aaaa");
+
         UiStyles.stylePrimaryButton(aplicarFiltroButton);
         UiStyles.styleSecondaryButton(atualizarButton);
         UiStyles.styleSecondaryButton(mesAtualButton);
@@ -313,160 +348,307 @@ public class InicioPanel extends JPanel implements DashboardView {
         UiStyles.styleLinkButton(contasButton);
         UiStyles.styleLinkButton(cofrinhosButton);
 
+        configurarCursorBotoes(
+                aplicarFiltroButton,
+                atualizarButton,
+                mesAtualButton,
+                mesAnteriorButton,
+                ultimosTrintaDiasButton,
+                esteAnoButton,
+                limparPeriodoButton,
+                tentarNovamenteButton,
+                transacoesButton,
+                categoriasButton,
+                contasButton,
+                cofrinhosButton
+        );
+
         periodoAtualLabel.setFont(UiStyles.LABEL_FONT);
         periodoAtualLabel.setForeground(UiStyles.TEXT_PRIMARY);
 
         statusCarregamentoLabel.setFont(UiStyles.SMALL_FONT);
-        statusCarregamentoLabel.setForeground(UiStyles.TEXT_SECONDARY);
+        statusCarregamentoLabel.setForeground(AZUL_DESTAQUE);
 
         erroLabel.setFont(UiStyles.TEXT_FONT);
         erroLabel.setForeground(UiStyles.ERROR);
 
-        contasStatusLabel.setFont(UiStyles.SMALL_FONT);
-        contasStatusLabel.setForeground(UiStyles.TEXT_SECONDARY);
-        categoriasStatusLabel.setFont(UiStyles.SMALL_FONT);
-        categoriasStatusLabel.setForeground(UiStyles.TEXT_SECONDARY);
-        transacoesStatusLabel.setFont(UiStyles.SMALL_FONT);
-        transacoesStatusLabel.setForeground(UiStyles.TEXT_SECONDARY);
-        cofrinhosStatusLabel.setFont(UiStyles.SMALL_FONT);
-        cofrinhosStatusLabel.setForeground(UiStyles.TEXT_SECONDARY);
+        configurarStatusLabel(contasStatusLabel);
+        configurarStatusLabel(categoriasStatusLabel);
+        configurarStatusLabel(transacoesStatusLabel);
+        configurarStatusLabel(cofrinhosStatusLabel);
 
-        contasListPanel.setOpaque(false);
-        contasListPanel.setLayout(new BoxLayout(contasListPanel, BoxLayout.Y_AXIS));
-        categoriasListPanel.setOpaque(false);
-        categoriasListPanel.setLayout(new BoxLayout(categoriasListPanel, BoxLayout.Y_AXIS));
-        cofrinhosListPanel.setOpaque(false);
-        cofrinhosListPanel.setLayout(new BoxLayout(cofrinhosListPanel, BoxLayout.Y_AXIS));
+        configurarListaVertical(contasListPanel);
+        configurarListaVertical(categoriasListPanel);
+        configurarListaVertical(cofrinhosListPanel);
 
+        contasBodyPanel.setOpaque(false);
+        categoriasBodyPanel.setOpaque(false);
+        transacoesBodyPanel.setOpaque(false);
+        cofrinhosBodyPanel.setOpaque(false);
+
+        configurarTabelaTransacoes();
+    }
+
+    private void configurarTabelaTransacoes() {
         transacoesTable.setFillsViewportHeight(true);
-        transacoesTable.setRowHeight(28);
+        transacoesTable.setRowHeight(36);
         transacoesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         transacoesTable.setDefaultEditor(Object.class, null);
+        transacoesTable.setShowGrid(false);
+        transacoesTable.setIntercellSpacing(new Dimension(0, 0));
+        transacoesTable.setBackground(UiStyles.WHITE);
+        transacoesTable.setForeground(UiStyles.TEXT_PRIMARY);
+        transacoesTable.setSelectionBackground(FUNDO_SELECAO_TABELA);
+        transacoesTable.setSelectionForeground(UiStyles.TEXT_PRIMARY);
+        transacoesTable.setFont(UiStyles.TEXT_FONT);
+        transacoesTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
         transacoesTable.getTableHeader().setReorderingAllowed(false);
+        transacoesTable.getTableHeader().setResizingAllowed(true);
+        transacoesTable.getTableHeader().setBackground(FUNDO_CABECALHO_TABELA);
+        transacoesTable.getTableHeader().setForeground(UiStyles.TEXT_PRIMARY);
+        transacoesTable.getTableHeader().setFont(UiStyles.LABEL_FONT);
+        transacoesTable.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        transacoesTable.getTableHeader().setBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER)
+        );
     }
 
     private JScrollPane criarScrollPane() {
-        JPanel conteudo = new JPanel();
-        conteudo.setOpaque(false);
-        conteudo.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+        DashboardContentPanel conteudo = new DashboardContentPanel();
+        conteudo.setBackground(FUNDO_DASHBOARD);
+        conteudo.setBorder(BorderFactory.createEmptyBorder(24, 28, 28, 28));
         conteudo.setLayout(new BoxLayout(conteudo, BoxLayout.Y_AXIS));
-        conteudo.add(criarCabecalho());
-        conteudo.add(Box.createVerticalStrut(20));
-        conteudo.add(criarPainelFiltros());
-        conteudo.add(Box.createVerticalStrut(16));
-        conteudo.add(criarPainelErro());
-        conteudo.add(Box.createVerticalStrut(16));
-        conteudo.add(criarCardsPrincipais());
-        conteudo.add(Box.createVerticalStrut(16));
-        conteudo.add(criarGridPrincipal());
+
+        adicionarBloco(conteudo, criarCabecalho());
+        conteudo.add(Box.createVerticalStrut(ESPACAMENTO_SECAO));
+        adicionarBloco(conteudo, criarPainelFiltros());
+        conteudo.add(Box.createVerticalStrut(14));
+        adicionarBloco(conteudo, criarPainelErro());
+        conteudo.add(Box.createVerticalStrut(14));
+        adicionarBloco(conteudo, criarCardsPrincipais());
+        conteudo.add(Box.createVerticalStrut(ESPACAMENTO_SECAO));
+        adicionarBloco(conteudo, criarGridPrincipal());
 
         JScrollPane scrollPane = new JScrollPane(conteudo);
         scrollPane.setBorder(null);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
+        scrollPane.setOpaque(true);
+        scrollPane.setBackground(FUNDO_DASHBOARD);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(FUNDO_DASHBOARD);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         return scrollPane;
     }
 
     private JPanel criarCabecalho() {
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JPanel panel = new JPanel(new BorderLayout(0, 16));
+        panel.setBackground(UiStyles.WHITE);
+        panel.setBorder(UiStyles.createCardBorder());
+
+        JPanel faixaDestaque = new JPanel();
+        faixaDestaque.setBackground(AZUL_DESTAQUE);
+        faixaDestaque.setPreferredSize(new Dimension(5, 0));
+        panel.add(faixaDestaque, BorderLayout.WEST);
+
+        JPanel conteudo = new JPanel(new BorderLayout(24, 0));
+        conteudo.setOpaque(false);
+
+        JPanel textos = new JPanel();
+        textos.setOpaque(false);
+        textos.setLayout(new BoxLayout(textos, BoxLayout.Y_AXIS));
 
         boasVindasLabel.setFont(UiStyles.TITLE_FONT);
         boasVindasLabel.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel subtitulo = new JLabel("Visao geral do seu controle financeiro no periodo selecionado.");
+        JLabel subtitulo = new JLabel("Acompanhe sua situação financeira de forma rápida e organizada.");
         subtitulo.setFont(UiStyles.SUBTITLE_FONT);
         subtitulo.setForeground(UiStyles.TEXT_SECONDARY);
 
-        JTextArea observacao = new JTextArea(
-                "Os cofrinhos permanecem independentes das contas. O total guardado nas metas nao e descontado automaticamente do saldo total."
+        textos.add(boasVindasLabel);
+        textos.add(Box.createVerticalStrut(7));
+        textos.add(subtitulo);
+
+        conteudo.add(textos, BorderLayout.CENTER);
+        conteudo.add(criarBadge("DASHBOARD FINANCEIRO"), BorderLayout.EAST);
+
+        JPanel observacaoPanel = new JPanel(new BorderLayout(10, 0));
+        observacaoPanel.setBackground(FUNDO_DESTAQUE);
+        observacaoPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xD9E6FF)),
+                BorderFactory.createEmptyBorder(11, 13, 11, 13)
+        ));
+
+        JLabel indicador = new JLabel("i", SwingConstants.CENTER);
+        indicador.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        indicador.setForeground(AZUL_DESTAQUE);
+        indicador.setPreferredSize(new Dimension(22, 22));
+
+        JLabel observacao = new JLabel(
+                "<html>Os cofrinhos são independentes das contas e não reduzem automaticamente o saldo total.</html>"
         );
-        observacao.setEditable(false);
-        observacao.setFocusable(false);
-        observacao.setOpaque(false);
-        observacao.setLineWrap(true);
-        observacao.setWrapStyleWord(true);
-        observacao.setFont(UiStyles.TEXT_FONT);
+        observacao.setFont(UiStyles.SMALL_FONT);
         observacao.setForeground(UiStyles.TEXT_PRIMARY);
 
-        panel.add(boasVindasLabel);
-        panel.add(Box.createVerticalStrut(8));
-        panel.add(subtitulo);
-        panel.add(Box.createVerticalStrut(12));
-        panel.add(observacao);
+        observacaoPanel.add(indicador, BorderLayout.WEST);
+        observacaoPanel.add(observacao, BorderLayout.CENTER);
+
+        JPanel centro = new JPanel(new BorderLayout(0, 16));
+        centro.setOpaque(false);
+        centro.add(conteudo, BorderLayout.NORTH);
+        centro.add(observacaoPanel, BorderLayout.CENTER);
+        panel.add(centro, BorderLayout.CENTER);
+
         return panel;
     }
 
     private JPanel criarPainelFiltros() {
-        JPanel panel = new JPanel(new BorderLayout(16, 16));
+        JPanel panel = new JPanel(new BorderLayout(0, 18));
         panel.setBackground(UiStyles.WHITE);
         panel.setBorder(UiStyles.createCardBorder());
 
+        JPanel cabecalho = new JPanel(new BorderLayout(16, 0));
+        cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
+
         JPanel tituloPanel = new JPanel();
         tituloPanel.setOpaque(false);
+        tituloPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
         tituloPanel.setLayout(new BoxLayout(tituloPanel, BoxLayout.Y_AXIS));
 
-        JLabel titulo = new JLabel("Visao geral");
-        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
+        JLabel titulo = new JLabel("Período do dashboard");
+        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
         titulo.setForeground(UiStyles.TEXT_PRIMARY);
 
-        tituloPanel.add(titulo);
-        tituloPanel.add(Box.createVerticalStrut(6));
-        tituloPanel.add(periodoAtualLabel);
-        tituloPanel.add(Box.createVerticalStrut(4));
-        tituloPanel.add(statusCarregamentoLabel);
+        JLabel descricao = new JLabel("Escolha um intervalo ou use um dos atalhos abaixo.");
+        descricao.setFont(UiStyles.SMALL_FONT);
+        descricao.setForeground(UiStyles.TEXT_SECONDARY);
 
-        panel.add(tituloPanel, BorderLayout.WEST);
+        tituloPanel.add(titulo);
+        tituloPanel.add(Box.createVerticalStrut(4));
+        tituloPanel.add(descricao);
+        tituloPanel.add(Box.createVerticalStrut(8));
+        tituloPanel.add(periodoAtualLabel);
+
+        JPanel carregamentoPanel = new JPanel(new BorderLayout());
+        carregamentoPanel.setOpaque(false);
+        carregamentoPanel.setBorder(BorderFactory.createEmptyBorder(0, 12, 14, 0));
+        carregamentoPanel.add(statusCarregamentoLabel, BorderLayout.NORTH);
+
+        cabecalho.add(tituloPanel, BorderLayout.CENTER);
+        cabecalho.add(carregamentoPanel, BorderLayout.EAST);
+
+        panel.add(cabecalho, BorderLayout.NORTH);
         panel.add(criarFormularioFiltros(), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel criarFormularioFiltros() {
-        JPanel painelDireito = new JPanel();
-        painelDireito.setOpaque(false);
-        painelDireito.setLayout(new BoxLayout(painelDireito, BoxLayout.Y_AXIS));
+        JPanel formulario = new JPanel(new GridBagLayout());
+        formulario.setOpaque(false);
 
-        JPanel linhaDatas = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        linhaDatas.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 12);
 
-        linhaDatas.add(criarLabelCampo("Data inicial"));
-        linhaDatas.add(dataInicialField);
-        linhaDatas.add(criarLabelCampo("Data final"));
-        linhaDatas.add(dataFinalField);
-        linhaDatas.add(aplicarFiltroButton);
-        linhaDatas.add(atualizarButton);
+        gbc.gridx = 0;
+        formulario.add(criarGrupoCampo("Data inicial", dataInicialField), gbc);
 
-        JPanel atalhos = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        atalhos.setOpaque(false);
-        atalhos.add(mesAtualButton);
-        atalhos.add(mesAnteriorButton);
-        atalhos.add(ultimosTrintaDiasButton);
-        atalhos.add(esteAnoButton);
-        atalhos.add(limparPeriodoButton);
+        gbc.gridx = 1;
+        formulario.add(criarGrupoCampo("Data final", dataFinalField), gbc);
 
-        painelDireito.add(linhaDatas);
-        painelDireito.add(Box.createVerticalStrut(12));
-        painelDireito.add(atalhos);
-        return painelDireito;
+        gbc.gridx = 2;
+        gbc.anchor = GridBagConstraints.SOUTHWEST;
+        formulario.add(aplicarFiltroButton, gbc);
+
+        gbc.gridx = 3;
+        formulario.add(atualizarButton, gbc);
+
+        gbc.gridx = 4;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formulario.add(Box.createHorizontalGlue(), gbc);
+
+        JPanel atalhos = new JPanel(new GridBagLayout());
+        atalhos.setBackground(FUNDO_SUAVE);
+        atalhos.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+
+        GridBagConstraints atalhoGbc = new GridBagConstraints();
+        atalhoGbc.gridy = 0;
+        atalhoGbc.anchor = GridBagConstraints.WEST;
+        atalhoGbc.insets = new Insets(0, 0, 0, 8);
+
+        JLabel atalhoLabel = new JLabel("Atalhos:");
+        atalhoLabel.setFont(UiStyles.LABEL_FONT);
+        atalhoLabel.setForeground(UiStyles.TEXT_SECONDARY);
+
+        atalhoGbc.gridx = 0;
+        atalhos.add(atalhoLabel, atalhoGbc);
+        atalhoGbc.gridx = 1;
+        atalhos.add(mesAtualButton, atalhoGbc);
+        atalhoGbc.gridx = 2;
+        atalhos.add(mesAnteriorButton, atalhoGbc);
+        atalhoGbc.gridx = 3;
+        atalhos.add(ultimosTrintaDiasButton, atalhoGbc);
+        atalhoGbc.gridx = 4;
+        atalhos.add(esteAnoButton, atalhoGbc);
+        atalhoGbc.gridx = 5;
+        atalhoGbc.insets = new Insets(0, 0, 0, 0);
+        atalhos.add(limparPeriodoButton, atalhoGbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(14, 0, 0, 0);
+        formulario.add(atalhos, gbc);
+
+        return formulario;
     }
 
-    private JLabel criarLabelCampo(String texto) {
+    private JPanel criarGrupoCampo(String texto, JTextField campo) {
+        JPanel grupo = new JPanel();
+        grupo.setOpaque(false);
+        grupo.setLayout(new BoxLayout(grupo, BoxLayout.Y_AXIS));
+
         JLabel label = new JLabel(texto);
         label.setFont(UiStyles.LABEL_FONT);
         label.setForeground(UiStyles.TEXT_PRIMARY);
-        return label;
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        campo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        grupo.add(label);
+        grupo.add(Box.createVerticalStrut(6));
+        grupo.add(campo);
+        return grupo;
     }
 
     private JPanel criarPainelErro() {
-        erroPanel.setBackground(new Color(0xFFF4F4));
+        erroPanel.setBackground(FUNDO_ERRO);
         erroPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UiStyles.BORDER),
-                BorderFactory.createEmptyBorder(14, 16, 14, 16)
+                BorderFactory.createLineBorder(BORDA_ERRO),
+                BorderFactory.createEmptyBorder(13, 15, 13, 15)
         ));
         erroPanel.setOpaque(true);
-        erroPanel.add(erroLabel, BorderLayout.CENTER);
+
+        JLabel iconeErro = new JLabel("!", SwingConstants.CENTER);
+        iconeErro.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        iconeErro.setForeground(UiStyles.ERROR);
+        iconeErro.setPreferredSize(new Dimension(24, 24));
+
+        JPanel mensagemPanel = new JPanel(new BorderLayout(10, 0));
+        mensagemPanel.setOpaque(false);
+        mensagemPanel.add(iconeErro, BorderLayout.WEST);
+        mensagemPanel.add(erroLabel, BorderLayout.CENTER);
+
+        erroPanel.add(mensagemPanel, BorderLayout.CENTER);
         erroPanel.add(tentarNovamenteButton, BorderLayout.EAST);
         erroPanel.setVisible(false);
         return erroPanel;
@@ -476,21 +658,31 @@ public class InicioPanel extends JPanel implements DashboardView {
         JPanel cards = new JPanel(new GridBagLayout());
         cards.setOpaque(false);
 
+        configurarTamanhoCardResumo(saldoTotalCard);
+        configurarTamanhoCardResumo(receitasCard);
+        configurarTamanhoCardResumo(despesasCard);
+        configurarTamanhoCardResumo(resultadoCard);
+
         GridBagConstraints constraints = new GridBagConstraints();
-        constraints.insets = new Insets(0, 0, 0, 16);
+        constraints.gridy = 0;
         constraints.fill = GridBagConstraints.BOTH;
         constraints.weightx = 1;
         constraints.weighty = 1;
 
         constraints.gridx = 0;
+        constraints.insets = new Insets(0, 0, 0, 14);
         cards.add(saldoTotalCard, constraints);
+
         constraints.gridx = 1;
         cards.add(receitasCard, constraints);
+
         constraints.gridx = 2;
         cards.add(despesasCard, constraints);
+
         constraints.gridx = 3;
         constraints.insets = new Insets(0, 0, 0, 0);
         cards.add(resultadoCard, constraints);
+
         return cards;
     }
 
@@ -502,10 +694,10 @@ public class InicioPanel extends JPanel implements DashboardView {
         constraints.fill = GridBagConstraints.BOTH;
         constraints.weightx = 1;
         constraints.weighty = 1;
-        constraints.insets = new Insets(0, 0, 16, 16);
 
         constraints.gridx = 0;
         constraints.gridy = 0;
+        constraints.insets = new Insets(0, 0, 16, 16);
         grid.add(criarSecaoContas(), constraints);
 
         constraints.gridx = 1;
@@ -524,79 +716,111 @@ public class InicioPanel extends JPanel implements DashboardView {
     }
 
     private JPanel criarSecaoContas() {
-        contasBodyPanel.setOpaque(false);
-        contasBodyPanel.add(criarScrollInterno(contasListPanel, 220), ESTADO_CONTEUDO);
+        contasBodyPanel.add(criarScrollInterno(contasListPanel, 222), ESTADO_CONTEUDO);
         contasBodyPanel.add(new EmptyStatePanel(
                 "Nenhuma conta cadastrada.",
                 "Cadastre uma conta para acompanhar o saldo total e os saldos individuais."
         ), ESTADO_VAZIO);
         contasBodyPanel.add(new LoadingPanel(), ESTADO_CARREGANDO);
-        return criarSecao("Resumo das contas", "Top 5 saldos atuais por conta.", contasButton, contasStatusLabel, contasBodyPanel);
+        return criarSecao(
+                "Resumo das contas",
+                "Os cinco maiores saldos atuais por conta.",
+                contasButton,
+                contasStatusLabel,
+                contasBodyPanel
+        );
     }
 
     private JPanel criarSecaoCategorias() {
-        categoriasBodyPanel.setOpaque(false);
-        categoriasBodyPanel.add(criarScrollInterno(categoriasListPanel, 220), ESTADO_CONTEUDO);
+        categoriasBodyPanel.add(criarScrollInterno(categoriasListPanel, 222), ESTADO_CONTEUDO);
         categoriasBodyPanel.add(new EmptyStatePanel(
-                "Nenhuma despesa paga no periodo selecionado.",
-                "As categorias aparecem aqui quando existem despesas pagas dentro do periodo filtrado."
+                "Nenhuma despesa paga no período selecionado.",
+                "As categorias aparecem quando existem despesas pagas dentro do período filtrado."
         ), ESTADO_VAZIO);
         categoriasBodyPanel.add(new LoadingPanel(), ESTADO_CARREGANDO);
-        return criarSecao("Despesas por categoria", "Somente despesas pagas entram neste resumo.", categoriasButton, categoriasStatusLabel, categoriasBodyPanel);
+        return criarSecao(
+                "Despesas por categoria",
+                "Distribuição das despesas efetivamente pagas.",
+                categoriasButton,
+                categoriasStatusLabel,
+                categoriasBodyPanel
+        );
     }
 
     private JPanel criarSecaoTransacoes() {
-        transacoesBodyPanel.setOpaque(false);
-        transacoesBodyPanel.add(criarScrollInterno(transacoesTable, 220), ESTADO_CONTEUDO);
+        transacoesBodyPanel.add(criarScrollInterno(transacoesTable, 222), ESTADO_CONTEUDO);
         transacoesBodyPanel.add(new EmptyStatePanel(
-                "Nenhuma transacao encontrada no periodo.",
+                "Nenhuma transação encontrada no período.",
                 "Receitas e despesas recentes aparecem aqui em ordem decrescente de data."
         ), ESTADO_VAZIO);
         transacoesBodyPanel.add(new LoadingPanel(), ESTADO_CARREGANDO);
-        return criarSecao("Transacoes recentes", "Ultimos lancamentos dentro do filtro atual.", transacoesButton, transacoesStatusLabel, transacoesBodyPanel);
+        return criarSecao(
+                "Transações recentes",
+                "Últimos lançamentos dentro do filtro atual.",
+                transacoesButton,
+                transacoesStatusLabel,
+                transacoesBodyPanel
+        );
     }
 
     private JPanel criarSecaoCofrinhos() {
-        cofrinhosBodyPanel.setOpaque(false);
-
         JPanel conteudo = new JPanel();
         conteudo.setOpaque(false);
         conteudo.setLayout(new BoxLayout(conteudo, BoxLayout.Y_AXIS));
-        conteudo.add(criarScrollInterno(cofrinhosListPanel, 200));
+        conteudo.add(criarScrollInterno(cofrinhosListPanel, 196));
         conteudo.add(Box.createVerticalStrut(10));
 
+        JPanel observacaoPanel = new JPanel(new BorderLayout());
+        observacaoPanel.setBackground(FUNDO_SUAVE);
+        observacaoPanel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+
         JLabel observacao = new JLabel(
-                "<html><body style='width:100%'>Os cofrinhos sao independentes das contas e nao reduzem o saldo total.</body></html>"
+                "<html>As metas são independentes das contas e não alteram o saldo total.</html>"
         );
         observacao.setFont(UiStyles.SMALL_FONT);
         observacao.setForeground(UiStyles.TEXT_SECONDARY);
-        conteudo.add(observacao);
+        observacaoPanel.add(observacao, BorderLayout.CENTER);
+        conteudo.add(observacaoPanel);
 
         cofrinhosBodyPanel.add(conteudo, ESTADO_CONTEUDO);
         cofrinhosBodyPanel.add(new EmptyStatePanel(
                 "Nenhum cofrinho cadastrado.",
-                "Crie metas para acompanhar progresso, status e prazos proximos."
+                "Crie metas para acompanhar progresso, status e prazos próximos."
         ), ESTADO_VAZIO);
         cofrinhosBodyPanel.add(new LoadingPanel(), ESTADO_CARREGANDO);
-        return criarSecao("Cofrinhos e metas", "Metas em andamento aparecem primeiro, com foco em prazos proximos.", cofrinhosButton, cofrinhosStatusLabel, cofrinhosBodyPanel);
+        return criarSecao(
+                "Cofrinhos e metas",
+                "Metas em andamento, priorizando os prazos mais próximos.",
+                cofrinhosButton,
+                cofrinhosStatusLabel,
+                cofrinhosBodyPanel
+        );
     }
 
-    private JPanel criarSecao(String titulo, String descricao, JButton acaoButton,
-                              JLabel statusLabel, JPanel corpo) {
-        JPanel card = new JPanel(new BorderLayout(0, 16));
+    private JPanel criarSecao(
+            String titulo,
+            String descricao,
+            JButton acaoButton,
+            JLabel statusLabel,
+            JPanel corpo
+    ) {
+        JPanel card = new JPanel(new BorderLayout(0, 14));
         card.setBackground(UiStyles.WHITE);
         card.setBorder(UiStyles.createCardBorder());
-        card.setPreferredSize(new Dimension(0, 320));
+        card.setPreferredSize(new Dimension(0, ALTURA_SECAO));
+        card.setMinimumSize(new Dimension(340, ALTURA_SECAO));
 
         JPanel cabecalho = new JPanel(new BorderLayout(12, 0));
         cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
 
         JPanel texto = new JPanel();
         texto.setOpaque(false);
+        texto.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
         texto.setLayout(new BoxLayout(texto, BoxLayout.Y_AXIS));
 
         JLabel tituloLabel = new JLabel(titulo);
-        tituloLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
+        tituloLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 17));
         tituloLabel.setForeground(UiStyles.TEXT_PRIMARY);
 
         JLabel descricaoLabel = new JLabel(descricao);
@@ -608,11 +832,16 @@ public class InicioPanel extends JPanel implements DashboardView {
         texto.add(tituloLabel);
         texto.add(Box.createVerticalStrut(4));
         texto.add(descricaoLabel);
-        texto.add(Box.createVerticalStrut(4));
+        texto.add(Box.createVerticalStrut(5));
         texto.add(statusLabel);
 
+        JPanel acaoPanel = new JPanel(new BorderLayout());
+        acaoPanel.setOpaque(false);
+        acaoPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        acaoPanel.add(acaoButton, BorderLayout.NORTH);
+
         cabecalho.add(texto, BorderLayout.CENTER);
-        cabecalho.add(acaoButton, BorderLayout.EAST);
+        cabecalho.add(acaoPanel, BorderLayout.EAST);
 
         card.add(cabecalho, BorderLayout.NORTH);
         card.add(corpo, BorderLayout.CENTER);
@@ -626,15 +855,60 @@ public class InicioPanel extends JPanel implements DashboardView {
         scrollPane.getViewport().setOpaque(false);
         scrollPane.setPreferredSize(new Dimension(0, altura));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         return scrollPane;
     }
 
     private JScrollPane criarScrollInterno(JTable table, int altura) {
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(null);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UiStyles.BORDER));
+        scrollPane.setBackground(UiStyles.WHITE);
+        scrollPane.getViewport().setBackground(UiStyles.WHITE);
         scrollPane.setPreferredSize(new Dimension(0, altura));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         return scrollPane;
+    }
+
+    private JLabel criarBadge(String texto) {
+        JLabel badge = new JLabel(texto);
+        badge.setOpaque(true);
+        badge.setBackground(FUNDO_DESTAQUE);
+        badge.setForeground(AZUL_DESTAQUE);
+        badge.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        badge.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xD9E6FF)),
+                BorderFactory.createEmptyBorder(7, 10, 7, 10)
+        ));
+        return badge;
+    }
+
+    private void configurarTamanhoCardResumo(JComponent card) {
+        card.setPreferredSize(new Dimension(220, 150));
+        card.setMinimumSize(new Dimension(190, 145));
+    }
+
+    private void configurarStatusLabel(JLabel label) {
+        label.setFont(UiStyles.SMALL_FONT);
+        label.setForeground(AZUL_DESTAQUE);
+    }
+
+    private void configurarListaVertical(JPanel panel) {
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 4));
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    }
+
+    private void configurarCursorBotoes(JButton... botoes) {
+        Cursor cursorMao = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+        for (JButton botao : botoes) {
+            botao.setCursor(cursorMao);
+        }
+    }
+
+    private void adicionarBloco(JPanel container, JComponent componente) {
+        componente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        container.add(componente);
     }
 
     private void atualizarContas(List<ResumoContaDashboard> contas) {
@@ -724,10 +998,10 @@ public class InicioPanel extends JPanel implements DashboardView {
     }
 
     private void exibirEstadoInicial() {
-        saldoTotalCard.atualizar("\u2014", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
-        receitasCard.atualizar("\u2014", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
-        despesasCard.atualizar("\u2014", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
-        resultadoCard.atualizar("\u2014", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
+        saldoTotalCard.atualizar("—", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
+        receitasCard.atualizar("—", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
+        despesasCard.atualizar("—", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
+        resultadoCard.atualizar("—", "Aguardando carregamento.", " ", UiStyles.TEXT_PRIMARY);
         contasBodyLayout.show(contasBodyPanel, ESTADO_VAZIO);
         categoriasBodyLayout.show(categoriasBodyPanel, ESTADO_VAZIO);
         transacoesBodyLayout.show(transacoesBodyPanel, ESTADO_VAZIO);
@@ -735,10 +1009,10 @@ public class InicioPanel extends JPanel implements DashboardView {
     }
 
     private void exibirIndicadoresAtualizacao() {
-        contasStatusLabel.setText("Atualizando...");
-        categoriasStatusLabel.setText("Atualizando...");
-        transacoesStatusLabel.setText("Atualizando...");
-        cofrinhosStatusLabel.setText("Atualizando...");
+        contasStatusLabel.setText("• Atualizando dados");
+        categoriasStatusLabel.setText("• Atualizando dados");
+        transacoesStatusLabel.setText("• Atualizando dados");
+        cofrinhosStatusLabel.setText("• Atualizando dados");
     }
 
     private void limparIndicadoresSecao() {
@@ -755,6 +1029,34 @@ public class InicioPanel extends JPanel implements DashboardView {
 
         if (acao != null) {
             button.addActionListener(event -> acao.run());
+        }
+    }
+
+    private static final class DashboardContentPanel extends JPanel implements Scrollable {
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(visibleRect.height - 40, 40);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
         }
     }
 }

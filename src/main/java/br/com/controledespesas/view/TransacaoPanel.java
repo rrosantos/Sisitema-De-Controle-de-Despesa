@@ -119,6 +119,10 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         UiStyles.styleTextComponent(dataInicialField);
         UiStyles.styleTextComponent(dataFinalField);
         UiStyles.styleTextComponent(descricaoField);
+        UiStyles.styleComboBox(tipoComboBox);
+        UiStyles.styleComboBox(statusComboBox);
+        UiStyles.styleComboBox(categoriaComboBox);
+        UiStyles.styleComboBox(contaComboBox);
         emptyStatePanel.setAcao(this::executarNovaTransacao);
 
         preencherCombosFixos();
@@ -561,6 +565,7 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     private JButton criarMenuButton(String texto, Runnable acao) {
         JButton button = new JButton(texto);
         button.setHorizontalAlignment(JButton.LEFT);
+        UiStyles.styleSecondaryButton(button);
         button.addActionListener(event -> acao.run());
         return button;
     }

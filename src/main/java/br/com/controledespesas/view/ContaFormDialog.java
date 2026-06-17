@@ -86,16 +86,16 @@ public class ContaFormDialog extends JDialog {
         UiStyles.styleTextComponent(nomeField);
         UiStyles.styleTextComponent(instituicaoField);
         UiStyles.styleTextComponent(saldoInicialField);
+        UiStyles.styleComboBox(tipoComboBox);
 
-        tipoComboBox.setFont(UiStyles.TEXT_FONT);
-        tipoComboBox.setBackground(UiStyles.WHITE);
         tipoComboBox.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
             JLabel label = new JLabel(ViewFormatters.formatTipoConta(value));
+            boolean popupItemSelected = isSelected && index >= 0;
             label.setOpaque(true);
             label.setFont(UiStyles.TEXT_FONT);
             label.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8));
-            label.setBackground(isSelected ? UiStyles.PRIMARY : UiStyles.WHITE);
-            label.setForeground(isSelected ? UiStyles.WHITE : UiStyles.TEXT_PRIMARY);
+            label.setBackground(popupItemSelected ? new java.awt.Color(0xE8F0FF) : UiStyles.WHITE);
+            label.setForeground(popupItemSelected ? UiStyles.PRIMARY_DARK : UiStyles.TEXT_PRIMARY);
             return label;
         });
 

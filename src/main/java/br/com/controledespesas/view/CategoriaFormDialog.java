@@ -84,11 +84,11 @@ public class CategoriaFormDialog extends JDialog {
         form.setOpaque(false);
 
         UiStyles.styleTextComponent(nomeField);
-
-        tipoComboBox.setFont(UiStyles.TEXT_FONT);
-        tipoComboBox.setBackground(UiStyles.WHITE);
+        UiStyles.styleComboBox(tipoComboBox);
 
         descricaoArea.setFont(UiStyles.TEXT_FONT);
+        descricaoArea.setBackground(UiStyles.WHITE);
+        descricaoArea.setForeground(UiStyles.TEXT_PRIMARY);
         descricaoArea.setLineWrap(true);
         descricaoArea.setWrapStyleWord(true);
         descricaoArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
