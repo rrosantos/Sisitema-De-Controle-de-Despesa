@@ -52,6 +52,10 @@ public class InicioPanel extends JPanel implements DashboardView {
     private static final Color BORDA_ERRO = new Color(0xFECACA);
     private static final Color FUNDO_CABECALHO_TABELA = new Color(0xF1F5F9);
     private static final Color FUNDO_SELECAO_TABELA = new Color(0xE8F0FF);
+    private static final Color VERDE_DESTAQUE = new Color(0x15803D);
+    private static final Color VERMELHO_DESTAQUE = new Color(0xB91C1C);
+    private static final Color ROXO_DESTAQUE = new Color(0xA855F7);
+    private static final Color LARANJA_DESTAQUE = new Color(0xEA580C);
 
     private static final int ESPACAMENTO_SECAO = 18;
     private static final int ALTURA_SECAO = 336;
@@ -350,6 +354,11 @@ public class InicioPanel extends JPanel implements DashboardView {
         UiStyles.styleLinkButton(contasButton);
         UiStyles.styleLinkButton(cofrinhosButton);
 
+        saldoTotalCard.definirCorDestaque(AZUL_DESTAQUE);
+        receitasCard.definirCorDestaque(VERDE_DESTAQUE);
+        despesasCard.definirCorDestaque(VERMELHO_DESTAQUE);
+        resultadoCard.definirCorDestaque(ROXO_DESTAQUE);
+
         configurarCursorBotoes(
                 aplicarFiltroButton,
                 atualizarButton,
@@ -398,12 +407,11 @@ public class InicioPanel extends JPanel implements DashboardView {
         transacoesTable.setDefaultEditor(Object.class, null);
         transacoesTable.setShowGrid(false);
         transacoesTable.setIntercellSpacing(new Dimension(0, 0));
-        transacoesTable.setBackground(UiStyles.WHITE);
-        transacoesTable.setForeground(UiStyles.TEXT_PRIMARY);
         transacoesTable.setSelectionBackground(FUNDO_SELECAO_TABELA);
         transacoesTable.setSelectionForeground(UiStyles.TEXT_PRIMARY);
         transacoesTable.setFont(UiStyles.TEXT_FONT);
         transacoesTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        UiStyles.styleTable(transacoesTable);
 
         JTableHeader header = transacoesTable.getTableHeader();
         header.setReorderingAllowed(false);
@@ -452,7 +460,7 @@ public class InicioPanel extends JPanel implements DashboardView {
     private JScrollPane criarScrollPane() {
         DashboardContentPanel conteudo = new DashboardContentPanel();
         conteudo.setBackground(FUNDO_DASHBOARD);
-        conteudo.setBorder(BorderFactory.createEmptyBorder(24, 28, 28, 28));
+        conteudo.setBorder(BorderFactory.createEmptyBorder(20, 24, 24, 24));
         conteudo.setLayout(new BoxLayout(conteudo, BoxLayout.Y_AXIS));
 
         adicionarBloco(conteudo, criarCabecalho());
@@ -479,11 +487,14 @@ public class InicioPanel extends JPanel implements DashboardView {
     private JPanel criarCabecalho() {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setBackground(UiStyles.WHITE);
-        panel.setBorder(UiStyles.createCardBorder());
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(24, 26, 24, 26)
+        ));
 
         JPanel faixaDestaque = new JPanel();
         faixaDestaque.setBackground(AZUL_DESTAQUE);
-        faixaDestaque.setPreferredSize(new Dimension(5, 0));
+        faixaDestaque.setPreferredSize(new Dimension(6, 0));
         panel.add(faixaDestaque, BorderLayout.WEST);
 
         JPanel conteudo = new JPanel(new BorderLayout(24, 0));
@@ -540,7 +551,10 @@ public class InicioPanel extends JPanel implements DashboardView {
     private JPanel criarPainelFiltros() {
         JPanel panel = new JPanel(new BorderLayout(0, 18));
         panel.setBackground(UiStyles.WHITE);
-        panel.setBorder(UiStyles.createCardBorder());
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(20, 24, 20, 24)
+        ));
 
         JPanel cabecalho = new JPanel(new BorderLayout(16, 0));
         cabecalho.setOpaque(false);
@@ -607,10 +621,10 @@ public class InicioPanel extends JPanel implements DashboardView {
         formulario.add(Box.createHorizontalGlue(), gbc);
 
         JPanel atalhos = new JPanel(new GridBagLayout());
-        atalhos.setBackground(FUNDO_SUAVE);
+        atalhos.setBackground(new Color(0xF9FBFF));
         atalhos.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UiStyles.BORDER),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)
         ));
 
         GridBagConstraints atalhoGbc = new GridBagConstraints();
@@ -762,7 +776,8 @@ public class InicioPanel extends JPanel implements DashboardView {
                 "Os cinco maiores saldos atuais por conta.",
                 contasButton,
                 contasStatusLabel,
-                contasBodyPanel
+                contasBodyPanel,
+                AZUL_DESTAQUE
         );
     }
 
@@ -778,7 +793,8 @@ public class InicioPanel extends JPanel implements DashboardView {
                 "Distribuição das despesas efetivamente pagas.",
                 categoriasButton,
                 categoriasStatusLabel,
-                categoriasBodyPanel
+                categoriasBodyPanel,
+                ROXO_DESTAQUE
         );
     }
 
@@ -794,7 +810,8 @@ public class InicioPanel extends JPanel implements DashboardView {
                 "Últimos lançamentos dentro do filtro atual.",
                 transacoesButton,
                 transacoesStatusLabel,
-                transacoesBodyPanel
+                transacoesBodyPanel,
+                VERDE_DESTAQUE
         );
     }
 
@@ -828,7 +845,8 @@ public class InicioPanel extends JPanel implements DashboardView {
                 "Metas em andamento, priorizando os prazos mais próximos.",
                 cofrinhosButton,
                 cofrinhosStatusLabel,
-                cofrinhosBodyPanel
+                cofrinhosBodyPanel,
+                LARANJA_DESTAQUE
         );
     }
 
@@ -837,11 +855,15 @@ public class InicioPanel extends JPanel implements DashboardView {
             String descricao,
             JButton acaoButton,
             JLabel statusLabel,
-            JPanel corpo
+            JPanel corpo,
+            Color corDestaque
     ) {
         JPanel card = new JPanel(new BorderLayout(0, 14));
         card.setBackground(UiStyles.WHITE);
-        card.setBorder(UiStyles.createCardBorder());
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(24, 28, 24, 28)
+        ));
         card.setPreferredSize(new Dimension(0, ALTURA_SECAO));
         card.setMinimumSize(new Dimension(340, ALTURA_SECAO));
 
@@ -849,9 +871,13 @@ public class InicioPanel extends JPanel implements DashboardView {
         cabecalho.setOpaque(false);
         cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
 
+        JPanel marcador = new JPanel();
+        marcador.setBackground(corDestaque != null ? corDestaque : AZUL_DESTAQUE);
+        marcador.setPreferredSize(new Dimension(5, 0));
+
         JPanel texto = new JPanel();
         texto.setOpaque(false);
-        texto.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        texto.setBorder(BorderFactory.createEmptyBorder(0, 12, 12, 0));
         texto.setLayout(new BoxLayout(texto, BoxLayout.Y_AXIS));
 
         JLabel tituloLabel = new JLabel(titulo);
@@ -875,7 +901,12 @@ public class InicioPanel extends JPanel implements DashboardView {
         acaoPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
         acaoPanel.add(acaoButton, BorderLayout.NORTH);
 
-        cabecalho.add(texto, BorderLayout.CENTER);
+        JPanel tituloComMarcador = new JPanel(new BorderLayout());
+        tituloComMarcador.setOpaque(false);
+        tituloComMarcador.add(marcador, BorderLayout.WEST);
+        tituloComMarcador.add(texto, BorderLayout.CENTER);
+
+        cabecalho.add(tituloComMarcador, BorderLayout.CENTER);
         cabecalho.add(acaoPanel, BorderLayout.EAST);
 
         card.add(cabecalho, BorderLayout.NORTH);
@@ -886,8 +917,10 @@ public class InicioPanel extends JPanel implements DashboardView {
     private JScrollPane criarScrollInterno(JPanel panel, int altura) {
         JScrollPane scrollPane = new JScrollPane(panel);
         scrollPane.setBorder(null);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setOpaque(true);
+        scrollPane.setBackground(UiStyles.WHITE);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(UiStyles.WHITE);
         scrollPane.setPreferredSize(new Dimension(0, altura));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -896,9 +929,7 @@ public class InicioPanel extends JPanel implements DashboardView {
 
     private JScrollPane criarScrollInterno(JTable table, int altura) {
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(UiStyles.BORDER));
-        scrollPane.setBackground(UiStyles.WHITE);
-        scrollPane.getViewport().setBackground(UiStyles.WHITE);
+        UiStyles.styleTableScrollPane(scrollPane);
         scrollPane.setPreferredSize(new Dimension(0, altura));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);

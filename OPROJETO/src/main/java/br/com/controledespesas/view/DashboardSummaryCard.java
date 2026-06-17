@@ -16,12 +16,20 @@ class DashboardSummaryCard extends JPanel {
     private final JLabel valueLabel;
     private final JLabel primaryDetailLabel;
     private final JLabel secondaryDetailLabel;
+    private final JPanel accentBar;
 
     DashboardSummaryCard(String titulo) {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(0, 14));
         setBackground(UiStyles.WHITE);
-        setBorder(UiStyles.createCardBorder());
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(18, 20, 18, 20)
+        ));
         setPreferredSize(new Dimension(0, 160));
+
+        accentBar = new JPanel();
+        accentBar.setBackground(UiStyles.PRIMARY);
+        accentBar.setPreferredSize(new Dimension(0, 4));
 
         titleLabel = new JLabel(titulo);
         valueLabel = new JLabel("\u2014");
@@ -52,7 +60,12 @@ class DashboardSummaryCard extends JPanel {
         content.add(Box.createVerticalStrut(4));
         content.add(secondaryDetailLabel);
 
+        add(accentBar, BorderLayout.NORTH);
         add(content, BorderLayout.CENTER);
+    }
+
+    void definirCorDestaque(Color cor) {
+        accentBar.setBackground(cor != null ? cor : UiStyles.PRIMARY);
     }
 
     void atualizar(String valor, String detalhePrimario, String detalheSecundario, Color corValor) {

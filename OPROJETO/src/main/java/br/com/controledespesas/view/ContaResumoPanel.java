@@ -8,14 +8,19 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Font;
 
 class ContaResumoPanel extends JPanel {
 
     ContaResumoPanel(ResumoContaDashboard resumo) {
         setLayout(new BorderLayout(12, 0));
-        setOpaque(false);
-        setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
+        setOpaque(true);
+        setBackground(new Color(0xF8FAFC));
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
 
         JLabel nomeLabel = new JLabel(ViewFormatters.formatOptionalText(resumo.nome()));
         nomeLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));

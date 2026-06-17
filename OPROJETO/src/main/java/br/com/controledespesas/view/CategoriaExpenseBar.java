@@ -20,8 +20,12 @@ class CategoriaExpenseBar extends JPanel {
 
     CategoriaExpenseBar(ResumoCategoriaDashboard resumo) {
         setLayout(new BorderLayout(0, 10));
-        setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+        setOpaque(true);
+        setBackground(new java.awt.Color(0xF8FAFC));
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
 
         nomeLabel = new JLabel();
         valorLabel = new JLabel();
@@ -37,9 +41,9 @@ class CategoriaExpenseBar extends JPanel {
         percentualLabel.setFont(UiStyles.SMALL_FONT);
         percentualLabel.setForeground(UiStyles.TEXT_SECONDARY);
 
-        progressBar.setPreferredSize(new Dimension(0, 14));
-        progressBar.setBorder(BorderFactory.createLineBorder(UiStyles.BORDER));
-        progressBar.setBackground(UiStyles.BACKGROUND);
+        progressBar.setPreferredSize(new Dimension(0, 12));
+        progressBar.setBorder(BorderFactory.createEmptyBorder());
+        progressBar.setBackground(new java.awt.Color(0xE5E7EB));
         progressBar.setForeground(UiStyles.PRIMARY);
         progressBar.setStringPainted(false);
 

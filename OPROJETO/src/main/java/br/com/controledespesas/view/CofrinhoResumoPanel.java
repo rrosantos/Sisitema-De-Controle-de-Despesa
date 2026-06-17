@@ -9,6 +9,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.time.LocalDate;
@@ -17,8 +18,12 @@ class CofrinhoResumoPanel extends JPanel {
 
     CofrinhoResumoPanel(ResumoCofrinhoDashboard resumo, LocalDate hoje) {
         setLayout(new BorderLayout(0, 10));
-        setOpaque(false);
-        setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
+        setOpaque(true);
+        setBackground(new Color(0xF8FAFC));
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
 
         JLabel nomeLabel = new JLabel(ViewFormatters.formatOptionalText(resumo.nome()));
         nomeLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
@@ -53,9 +58,9 @@ class CofrinhoResumoPanel extends JPanel {
 
         JProgressBar progressBar = new JProgressBar(0, 100);
         progressBar.setValue(DashboardViewSupport.percentualVisual(resumo.percentual()));
-        progressBar.setPreferredSize(new Dimension(0, 14));
-        progressBar.setBorder(BorderFactory.createLineBorder(UiStyles.BORDER));
-        progressBar.setBackground(UiStyles.BACKGROUND);
+        progressBar.setPreferredSize(new Dimension(0, 12));
+        progressBar.setBorder(BorderFactory.createEmptyBorder());
+        progressBar.setBackground(new Color(0xE5E7EB));
         progressBar.setForeground(UiStyles.SUCCESS);
         progressBar.setStringPainted(false);
 
