@@ -1,0 +1,54 @@
+BANCO DE DADOS — SISTEMA DE CONTROLE DE DESPESAS PESSOAIS
+
+BANCO MYSQL
+
+Nome do banco: controle_despesas
+Host: localhost
+Porta: 3306
+
+USUÁRIO DO MYSQL
+
+Usuário: controle_app
+Senha: senha123
+
+USUÁRIO PARA LOGIN NO SISTEMA
+
+Nome: Usuário de Teste
+E-mail: teste@controle.com
+Senha: Teste@123
+
+INSTALAÇÃO DO BANCO
+
+Opção 1 — Ubuntu com autenticação administrativa:
+
+sudo mysql < controle_despesas.sql
+
+Opção 2 — MySQL solicitando senha do root:
+
+mysql -u root -p < controle_despesas.sql
+
+TESTE DA CONEXÃO
+
+mysql -u controle_app -p controle_despesas
+
+Quando a senha for solicitada, informe:
+
+senha123
+
+OBSERVAÇÃO
+
+O script cria o banco, as tabelas, o usuário da aplicação, as permissões e dados fictícios para demonstração.
+
+Os dados de demonstração incluem:
+
+* usuário;
+* categorias de receitas e despesas;
+* contas;
+* receitas;
+* despesas;
+* transações pendentes e canceladas;
+* cofrinhos;
+* depósitos;
+* retiradas.
+
+As movimentações dos cofrinhos são independentes das contas financeiras.
