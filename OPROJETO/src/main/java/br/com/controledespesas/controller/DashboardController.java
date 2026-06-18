@@ -24,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Coordena filtros, atalhos e carregamento assíncrono do resumo financeiro do dashboard.
+ * Coordena filtros e carregamento assíncrono do resumo financeiro do dashboard.
  */
 public class DashboardController implements DashboardRefreshNotifier {
 
@@ -95,29 +95,6 @@ public class DashboardController implements DashboardRefreshNotifier {
         carregar();
     }
 
-    public void mostrarMesAtual() {
-        dashboardView.definirPeriodo(primeiroDiaMesAtual(), hoje());
-        carregar();
-    }
-
-    public void mostrarMesAnterior() {
-        LocalDate referencia = hoje().minusMonths(1);
-        dashboardView.definirPeriodo(referencia.withDayOfMonth(1), referencia.withDayOfMonth(referencia.lengthOfMonth()));
-        carregar();
-    }
-
-    public void mostrarUltimosTrintaDias() {
-        LocalDate dataFinal = hoje();
-        dashboardView.definirPeriodo(dataFinal.minusDays(29), dataFinal);
-        carregar();
-    }
-
-    public void mostrarEsteAno() {
-        LocalDate dataFinal = hoje();
-        dashboardView.definirPeriodo(dataFinal.withDayOfYear(1), dataFinal);
-        carregar();
-    }
-
     public void limparPeriodo() {
         dashboardView.definirPeriodo(null, null);
         carregar();
@@ -172,10 +149,6 @@ public class DashboardController implements DashboardRefreshNotifier {
         dashboardView.definirAcaoAplicarFiltro(this::aplicarFiltro);
         dashboardView.definirAcaoAtualizar(this::carregar);
         dashboardView.definirAcaoTentarNovamente(this::carregar);
-        dashboardView.definirAcaoMesAtual(this::mostrarMesAtual);
-        dashboardView.definirAcaoMesAnterior(this::mostrarMesAnterior);
-        dashboardView.definirAcaoUltimosTrintaDias(this::mostrarUltimosTrintaDias);
-        dashboardView.definirAcaoEsteAno(this::mostrarEsteAno);
         dashboardView.definirAcaoLimparPeriodo(this::limparPeriodo);
         dashboardView.definirAcaoAbrirTransacoes(this::abrirTransacoes);
         dashboardView.definirAcaoAbrirContas(this::abrirContas);

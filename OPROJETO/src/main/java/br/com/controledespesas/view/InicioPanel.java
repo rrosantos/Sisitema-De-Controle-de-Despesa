@@ -75,10 +75,6 @@ public class InicioPanel extends JPanel implements DashboardView {
     private final JTextField dataFinalField;
     private final JButton aplicarFiltroButton;
     private final JButton atualizarButton;
-    private final JButton mesAtualButton;
-    private final JButton mesAnteriorButton;
-    private final JButton ultimosTrintaDiasButton;
-    private final JButton esteAnoButton;
     private final JButton limparPeriodoButton;
     private final JButton tentarNovamenteButton;
     private final JButton transacoesButton;
@@ -123,10 +119,6 @@ public class InicioPanel extends JPanel implements DashboardView {
         dataFinalField = criarCampoData();
         aplicarFiltroButton = new JButton("Aplicar filtro");
         atualizarButton = new JButton("Atualizar");
-        mesAtualButton = new JButton("Mês atual");
-        mesAnteriorButton = new JButton("Mês anterior");
-        ultimosTrintaDiasButton = new JButton("Últimos 30 dias");
-        esteAnoButton = new JButton("Este ano");
         limparPeriodoButton = new JButton("Limpar período");
         tentarNovamenteButton = new JButton("Tentar novamente");
         transacoesButton = new JButton("Ver transações");
@@ -300,26 +292,6 @@ public class InicioPanel extends JPanel implements DashboardView {
     }
 
     @Override
-    public void definirAcaoMesAtual(Runnable acao) {
-        configurarAcao(mesAtualButton, acao);
-    }
-
-    @Override
-    public void definirAcaoMesAnterior(Runnable acao) {
-        configurarAcao(mesAnteriorButton, acao);
-    }
-
-    @Override
-    public void definirAcaoUltimosTrintaDias(Runnable acao) {
-        configurarAcao(ultimosTrintaDiasButton, acao);
-    }
-
-    @Override
-    public void definirAcaoEsteAno(Runnable acao) {
-        configurarAcao(esteAnoButton, acao);
-    }
-
-    @Override
     public void definirAcaoLimparPeriodo(Runnable acao) {
         configurarAcao(limparPeriodoButton, acao);
     }
@@ -350,10 +322,6 @@ public class InicioPanel extends JPanel implements DashboardView {
 
         UiStyles.stylePrimaryButton(aplicarFiltroButton);
         UiStyles.styleSecondaryButton(atualizarButton);
-        UiStyles.styleSecondaryButton(mesAtualButton);
-        UiStyles.styleSecondaryButton(mesAnteriorButton);
-        UiStyles.styleSecondaryButton(ultimosTrintaDiasButton);
-        UiStyles.styleSecondaryButton(esteAnoButton);
         UiStyles.styleSecondaryButton(limparPeriodoButton);
         UiStyles.styleSecondaryButton(tentarNovamenteButton);
         UiStyles.styleLinkButton(transacoesButton);
@@ -369,10 +337,6 @@ public class InicioPanel extends JPanel implements DashboardView {
         configurarCursorBotoes(
                 aplicarFiltroButton,
                 atualizarButton,
-                mesAtualButton,
-                mesAnteriorButton,
-                ultimosTrintaDiasButton,
-                esteAnoButton,
                 limparPeriodoButton,
                 tentarNovamenteButton,
                 transacoesButton,
@@ -576,7 +540,7 @@ public class InicioPanel extends JPanel implements DashboardView {
         titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
         titulo.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel descricao = new JLabel("Escolha um intervalo ou use um dos atalhos abaixo.");
+        JLabel descricao = new JLabel("Escolha o intervalo que deseja visualizar.");
         descricao.setFont(UiStyles.SMALL_FONT);
         descricao.setForeground(UiStyles.TEXT_SECONDARY);
 
@@ -623,48 +587,12 @@ public class InicioPanel extends JPanel implements DashboardView {
         formulario.add(atualizarButton, gbc);
 
         gbc.gridx = 4;
+        formulario.add(limparPeriodoButton, gbc);
+
+        gbc.gridx = 5;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         formulario.add(Box.createHorizontalGlue(), gbc);
-
-        JPanel atalhos = new JPanel(new GridBagLayout());
-        atalhos.setBackground(new Color(0xF9FBFF));
-        atalhos.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UiStyles.BORDER),
-                BorderFactory.createEmptyBorder(12, 14, 12, 14)
-        ));
-
-        GridBagConstraints atalhoGbc = new GridBagConstraints();
-        atalhoGbc.gridy = 0;
-        atalhoGbc.anchor = GridBagConstraints.WEST;
-        atalhoGbc.insets = new Insets(0, 0, 0, 8);
-
-        JLabel atalhoLabel = new JLabel("Atalhos:");
-        atalhoLabel.setFont(UiStyles.LABEL_FONT);
-        atalhoLabel.setForeground(UiStyles.TEXT_SECONDARY);
-
-        atalhoGbc.gridx = 0;
-        atalhos.add(atalhoLabel, atalhoGbc);
-        atalhoGbc.gridx = 1;
-        atalhos.add(mesAtualButton, atalhoGbc);
-        atalhoGbc.gridx = 2;
-        atalhos.add(mesAnteriorButton, atalhoGbc);
-        atalhoGbc.gridx = 3;
-        atalhos.add(ultimosTrintaDiasButton, atalhoGbc);
-        atalhoGbc.gridx = 4;
-        atalhos.add(esteAnoButton, atalhoGbc);
-        atalhoGbc.gridx = 5;
-        atalhoGbc.insets = new Insets(0, 0, 0, 0);
-        atalhos.add(limparPeriodoButton, atalhoGbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 5;
-        gbc.weightx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(14, 0, 0, 0);
-        formulario.add(atalhos, gbc);
 
         return formulario;
     }
@@ -1086,10 +1014,6 @@ public class InicioPanel extends JPanel implements DashboardView {
     private void atualizarEstadoControles(boolean carregando) {
         aplicarFiltroButton.setEnabled(!carregando);
         atualizarButton.setEnabled(!carregando);
-        mesAtualButton.setEnabled(!carregando);
-        mesAnteriorButton.setEnabled(!carregando);
-        ultimosTrintaDiasButton.setEnabled(!carregando);
-        esteAnoButton.setEnabled(!carregando);
         limparPeriodoButton.setEnabled(!carregando);
     }
 

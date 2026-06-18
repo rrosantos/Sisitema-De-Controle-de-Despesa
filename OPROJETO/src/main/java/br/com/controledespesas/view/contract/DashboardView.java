@@ -29,14 +29,6 @@ public interface DashboardView {
 
     void definirAcaoTentarNovamente(Runnable acao);
 
-    void definirAcaoMesAtual(Runnable acao);
-
-    void definirAcaoMesAnterior(Runnable acao);
-
-    void definirAcaoUltimosTrintaDias(Runnable acao);
-
-    void definirAcaoEsteAno(Runnable acao);
-
     void definirAcaoLimparPeriodo(Runnable acao);
 
     void definirAcaoAbrirTransacoes(Runnable acao);
