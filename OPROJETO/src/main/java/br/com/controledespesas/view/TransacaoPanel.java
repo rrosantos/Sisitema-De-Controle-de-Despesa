@@ -17,26 +17,37 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.Scrollable;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
+import javax.swing.text.MaskFormatter;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -51,6 +62,13 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     private static final String CARD_VAZIO = "vazio";
     private static final String CARD_LOADING = "loading";
     private static final int COLUMN_ACTIONS = 7;
+    private static final String MASCARA_DATA = "##/##/####";
+    private static final Color FUNDO_TRANSACOES = new Color(0xF5F7FB);
+    private static final Color FUNDO_DESTAQUE = new Color(0xEEF4FF);
+    private static final Color AZUL_DESTAQUE = new Color(0x2F6FED);
+    private static final Color VERDE_DESTAQUE = new Color(0x15803D);
+    private static final Color VERMELHO_DESTAQUE = new Color(0xB91C1C);
+    private static final Color ROXO_DESTAQUE = new Color(0xA855F7);
 
     private final MoneyFormatter moneyFormatter;
     private final JButton novaTransacaoButton;
@@ -64,9 +82,9 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     private final JComboBox<SelectionOption<Long>> contaComboBox;
     private final JTextField descricaoField;
     private final JLabel mensagemLabel;
-    private final JLabel totalReceitasLabel;
-    private final JLabel totalDespesasLabel;
-    private final JLabel saldoPeriodoLabel;
+    private final DashboardSummaryCard totalReceitasCard;
+    private final DashboardSummaryCard totalDespesasCard;
+    private final DashboardSummaryCard saldoPeriodoCard;
     private final TransacaoTableModel tableModel;
     private final JTable tabela;
     private final CardLayout contentLayout;
@@ -85,24 +103,25 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     private TransacaoFormDialog formularioAtual;
 
     public TransacaoPanel() {
-        setLayout(new BorderLayout(18, 18));
-        setOpaque(false);
+        setLayout(new BorderLayout());
+        setOpaque(true);
+        setBackground(FUNDO_TRANSACOES);
 
         moneyFormatter = new MoneyFormatter();
         novaTransacaoButton = new JButton("Nova transacao");
         filtrarButton = new JButton("Filtrar");
         limparFiltrosButton = new JButton("Limpar filtros");
-        dataInicialField = new JTextField();
-        dataFinalField = new JTextField();
+        dataInicialField = criarCampoData();
+        dataFinalField = criarCampoData();
         tipoComboBox = new JComboBox<>();
         statusComboBox = new JComboBox<>();
         categoriaComboBox = new JComboBox<>();
         contaComboBox = new JComboBox<>();
         descricaoField = new JTextField();
         mensagemLabel = UiStyles.createMessageLabel();
-        totalReceitasLabel = criarResumoValor();
-        totalDespesasLabel = criarResumoValor();
-        saldoPeriodoLabel = criarResumoValor();
+        totalReceitasCard = new DashboardSummaryCard("Receitas recebidas");
+        totalDespesasCard = new DashboardSummaryCard("Despesas pagas");
+        saldoPeriodoCard = new DashboardSummaryCard("Saldo do periodo");
         tableModel = new TransacaoTableModel(moneyFormatter);
         tabela = new JTable(tableModel);
         contentLayout = new CardLayout();
@@ -123,11 +142,12 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         UiStyles.styleComboBox(statusComboBox);
         UiStyles.styleComboBox(categoriaComboBox);
         UiStyles.styleComboBox(contaComboBox);
+        configurarCardsResumo();
+        configurarCamposFiltro();
         emptyStatePanel.setAcao(this::executarNovaTransacao);
 
         preencherCombosFixos();
-        add(criarCabecalho(), BorderLayout.NORTH);
-        add(criarConteudo(), BorderLayout.CENTER);
+        add(criarScrollPane(), BorderLayout.CENTER);
         configurarTabela();
         configurarAcoesLocais();
         atualizarEstadoConteudo();
@@ -163,9 +183,28 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
 
     @Override
     public void exibirResumo(BigDecimal totalReceitas, BigDecimal totalDespesas, BigDecimal saldoPeriodo) {
-        totalReceitasLabel.setText(moneyFormatter.format(totalReceitas != null ? totalReceitas : BigDecimal.ZERO));
-        totalDespesasLabel.setText(moneyFormatter.format(totalDespesas != null ? totalDespesas : BigDecimal.ZERO));
-        saldoPeriodoLabel.setText(moneyFormatter.format(saldoPeriodo != null ? saldoPeriodo : BigDecimal.ZERO));
+        BigDecimal receitas = totalReceitas != null ? totalReceitas : BigDecimal.ZERO;
+        BigDecimal despesas = totalDespesas != null ? totalDespesas : BigDecimal.ZERO;
+        BigDecimal saldo = saldoPeriodo != null ? saldoPeriodo : BigDecimal.ZERO;
+
+        totalReceitasCard.atualizar(
+                moneyFormatter.format(receitas),
+                "Entradas recebidas no periodo.",
+                "Valores conforme filtros aplicados.",
+                UiStyles.SUCCESS
+        );
+        totalDespesasCard.atualizar(
+                moneyFormatter.format(despesas),
+                "Saidas pagas no periodo.",
+                "Pendentes e canceladas seguem no historico.",
+                UiStyles.ERROR
+        );
+        saldoPeriodoCard.atualizar(
+                moneyFormatter.format(saldo),
+                "Receitas menos despesas.",
+                tableModel.getRowCount() + " transacao(oes) listada(s).",
+                saldo.signum() >= 0 ? UiStyles.SUCCESS : UiStyles.ERROR
+        );
     }
 
     @Override
@@ -251,8 +290,8 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         SelectionOption<Long> categoria = obterSelecionado(categoriaComboBox);
         SelectionOption<Long> conta = obterSelecionado(contaComboBox);
 
-        java.time.LocalDate dataInicial = DateFormatter.parse(dataInicialField.getText());
-        java.time.LocalDate dataFinal = DateFormatter.parse(dataFinalField.getText());
+        java.time.LocalDate dataInicial = DateFormatter.parse(obterTextoData(dataInicialField));
+        java.time.LocalDate dataFinal = DateFormatter.parse(obterTextoData(dataFinalField));
         if (dataInicial != null && dataFinal != null && dataInicial.isAfter(dataFinal)) {
             throw new ValidacaoException("A data inicial nao pode ser posterior a data final.");
         }
@@ -318,8 +357,17 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     }
 
     private JPanel criarCabecalho() {
-        JPanel wrapper = new JPanel(new BorderLayout(0, 16));
-        wrapper.setOpaque(false);
+        JPanel wrapper = new JPanel(new BorderLayout(24, 0));
+        wrapper.setBackground(UiStyles.WHITE);
+        wrapper.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(24, 26, 24, 26)
+        ));
+
+        JPanel faixaDestaque = new JPanel();
+        faixaDestaque.setBackground(AZUL_DESTAQUE);
+        faixaDestaque.setPreferredSize(new Dimension(6, 0));
+        wrapper.add(faixaDestaque, BorderLayout.WEST);
 
         JPanel titlePanel = new JPanel();
         titlePanel.setOpaque(false);
@@ -329,89 +377,159 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         titulo.setFont(UiStyles.TITLE_FONT);
         titulo.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel subtitulo = new JLabel("Registre receitas e despesas com filtros, resumo e historico por periodo.");
+        JLabel subtitulo = new JLabel("Registre, filtre e acompanhe receitas e despesas em um unico lugar.");
         subtitulo.setFont(UiStyles.SUBTITLE_FONT);
         subtitulo.setForeground(UiStyles.TEXT_SECONDARY);
 
+        JPanel observacaoPanel = new JPanel(new BorderLayout(10, 0));
+        observacaoPanel.setBackground(FUNDO_DESTAQUE);
+        observacaoPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xD9E6FF)),
+                BorderFactory.createEmptyBorder(11, 13, 11, 13)
+        ));
+
+        JLabel indicador = new JLabel("i", SwingConstants.CENTER);
+        indicador.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        indicador.setForeground(AZUL_DESTAQUE);
+        indicador.setPreferredSize(new Dimension(22, 22));
+
+        JLabel observacao = new JLabel("Use os filtros para analisar periodos, contas, categorias e status especificos.");
+        observacao.setFont(UiStyles.SMALL_FONT);
+        observacao.setForeground(UiStyles.TEXT_PRIMARY);
+
+        observacaoPanel.add(indicador, BorderLayout.WEST);
+        observacaoPanel.add(observacao, BorderLayout.CENTER);
+
         titlePanel.add(titulo);
-        titlePanel.add(Box.createVerticalStrut(6));
+        titlePanel.add(Box.createVerticalStrut(7));
         titlePanel.add(subtitulo);
+        titlePanel.add(Box.createVerticalStrut(16));
+        titlePanel.add(observacaoPanel);
 
-        JPanel top = new JPanel(new BorderLayout(16, 0));
-        top.setOpaque(false);
-        top.add(titlePanel, BorderLayout.WEST);
-        top.add(novaTransacaoButton, BorderLayout.EAST);
-
-        wrapper.add(top, BorderLayout.NORTH);
-        wrapper.add(criarResumo(), BorderLayout.CENTER);
-
-        JPanel inferior = new JPanel(new BorderLayout(0, 12));
-        inferior.setOpaque(false);
-        inferior.add(criarFiltros(), BorderLayout.NORTH);
-        inferior.add(mensagemLabel, BorderLayout.SOUTH);
-        wrapper.add(inferior, BorderLayout.SOUTH);
+        wrapper.add(titlePanel, BorderLayout.CENTER);
+        wrapper.add(novaTransacaoButton, BorderLayout.EAST);
         return wrapper;
     }
 
     private JPanel criarResumo() {
-        JPanel wrapper = new JPanel(new BorderLayout(0, 8));
-        wrapper.setOpaque(false);
-
-        JPanel cards = new JPanel(new GridLayout(1, 3, 12, 12));
+        JPanel cards = new JPanel(new GridBagLayout());
         cards.setOpaque(false);
-        cards.add(criarCardResumo("Receitas recebidas", totalReceitasLabel));
-        cards.add(criarCardResumo("Despesas pagas", totalDespesasLabel));
-        cards.add(criarCardResumo("Saldo do periodo", saldoPeriodoLabel));
 
-        JLabel aviso = new JLabel("Os cards consideram apenas o intervalo de datas informado.");
-        aviso.setFont(UiStyles.SMALL_FONT);
-        aviso.setForeground(UiStyles.TEXT_SECONDARY);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
 
-        wrapper.add(cards, BorderLayout.CENTER);
-        wrapper.add(aviso, BorderLayout.SOUTH);
-        return wrapper;
-    }
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 0, 14);
+        cards.add(totalReceitasCard, gbc);
 
-    private JPanel criarCardResumo(String titulo, JLabel valorLabel) {
-        JPanel card = new JPanel(new BorderLayout(0, 10));
-        card.setBackground(UiStyles.BACKGROUND);
-        card.setBorder(UiStyles.createCardBorder());
+        gbc.gridx = 1;
+        cards.add(totalDespesasCard, gbc);
 
-        JLabel tituloLabel = new JLabel(titulo);
-        tituloLabel.setFont(UiStyles.LABEL_FONT);
-        tituloLabel.setForeground(UiStyles.TEXT_SECONDARY);
+        gbc.gridx = 2;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        cards.add(saldoPeriodoCard, gbc);
 
-        card.add(tituloLabel, BorderLayout.NORTH);
-        card.add(valorLabel, BorderLayout.CENTER);
-        return card;
-    }
-
-    private JLabel criarResumoValor() {
-        JLabel label = new JLabel(moneyFormatter.format(BigDecimal.ZERO));
-        label.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
-        label.setForeground(UiStyles.TEXT_PRIMARY);
-        return label;
+        return cards;
     }
 
     private JPanel criarFiltros() {
-        JPanel filtros = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 18));
+        panel.setBackground(UiStyles.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(20, 24, 20, 24)
+        ));
+
+        JPanel cabecalho = new JPanel(new BorderLayout(16, 0));
+        cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
+
+        JPanel tituloPanel = new JPanel();
+        tituloPanel.setOpaque(false);
+        tituloPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
+        tituloPanel.setLayout(new BoxLayout(tituloPanel, BoxLayout.Y_AXIS));
+
+        JLabel titulo = new JLabel("Filtros de busca");
+        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
+        titulo.setForeground(UiStyles.TEXT_PRIMARY);
+
+        JLabel descricao = new JLabel("Refine a lista por periodo, tipo, status, categoria, conta ou descricao.");
+        descricao.setFont(UiStyles.SMALL_FONT);
+        descricao.setForeground(UiStyles.TEXT_SECONDARY);
+
+        tituloPanel.add(titulo);
+        tituloPanel.add(Box.createVerticalStrut(4));
+        tituloPanel.add(descricao);
+
+        cabecalho.add(tituloPanel, BorderLayout.CENTER);
+        panel.add(cabecalho, BorderLayout.NORTH);
+        panel.add(criarFormularioFiltros(), BorderLayout.CENTER);
+        panel.add(mensagemLabel, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private JPanel criarFormularioFiltros() {
+        JPanel filtros = new JPanel(new GridBagLayout());
         filtros.setOpaque(false);
 
-        dataInicialField.setPreferredSize(new Dimension(120, 40));
-        dataFinalField.setPreferredSize(new Dimension(120, 40));
-        descricaoField.setPreferredSize(new Dimension(200, 40));
-        categoriaComboBox.setPreferredSize(new Dimension(180, 40));
-        contaComboBox.setPreferredSize(new Dimension(180, 40));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 12, 12);
 
-        filtros.add(criarLabeled("Data inicial", dataInicialField));
-        filtros.add(criarLabeled("Data final", dataFinalField));
-        filtros.add(criarLabeled("Tipo", tipoComboBox));
-        filtros.add(criarLabeled("Status", statusComboBox));
-        filtros.add(criarLabeled("Categoria", categoriaComboBox));
-        filtros.add(criarLabeled("Conta", contaComboBox));
-        filtros.add(criarLabeled("Descricao", descricaoField));
-        filtros.add(filtrarButton);
-        filtros.add(limparFiltrosButton);
+        gbc.gridx = 0;
+        filtros.add(criarLabeled("Data inicial", dataInicialField), gbc);
+
+        gbc.gridx = 1;
+        filtros.add(criarLabeled("Data final", dataFinalField), gbc);
+
+        gbc.gridx = 2;
+        filtros.add(criarLabeled("Tipo", tipoComboBox), gbc);
+
+        gbc.gridx = 3;
+        filtros.add(criarLabeled("Status", statusComboBox), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        filtros.add(criarLabeled("Categoria", categoriaComboBox), gbc);
+
+        gbc.gridx = 1;
+        filtros.add(criarLabeled("Conta", contaComboBox), gbc);
+
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        filtros.add(criarLabeled("Descricao", descricaoField), gbc);
+
+        JPanel acoes = new JPanel(new GridBagLayout());
+        acoes.setBackground(new Color(0xF9FBFF));
+        acoes.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)
+        ));
+
+        GridBagConstraints acaoGbc = new GridBagConstraints();
+        acaoGbc.gridy = 0;
+        acaoGbc.anchor = GridBagConstraints.WEST;
+        acaoGbc.insets = new Insets(0, 0, 0, 10);
+        acaoGbc.gridx = 0;
+        acoes.add(filtrarButton, acaoGbc);
+        acaoGbc.gridx = 1;
+        acaoGbc.insets = new Insets(0, 0, 0, 0);
+        acoes.add(limparFiltrosButton, acaoGbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 4;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(2, 0, 0, 0);
+        filtros.add(acoes, gbc);
+
         return filtros;
     }
 
@@ -431,6 +549,30 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
     }
 
     private JPanel criarConteudo() {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 16));
+        wrapper.setBackground(UiStyles.WHITE);
+        wrapper.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(20, 24, 24, 24)
+        ));
+
+        JPanel cabecalho = new JPanel();
+        cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        cabecalho.setLayout(new BoxLayout(cabecalho, BoxLayout.Y_AXIS));
+
+        JLabel titulo = new JLabel("Historico de transacoes");
+        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
+        titulo.setForeground(UiStyles.TEXT_PRIMARY);
+
+        JLabel descricao = new JLabel("Clique em Acoes para editar ou excluir uma transacao.");
+        descricao.setFont(UiStyles.SMALL_FONT);
+        descricao.setForeground(UiStyles.TEXT_SECONDARY);
+
+        cabecalho.add(titulo);
+        cabecalho.add(Box.createVerticalStrut(4));
+        cabecalho.add(descricao);
+
         JPanel tabelaPanel = new JPanel(new BorderLayout());
         tabelaPanel.setOpaque(false);
 
@@ -442,18 +584,32 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         contentPanel.add(tabelaPanel, CARD_LISTA);
         contentPanel.add(emptyStatePanel, CARD_VAZIO);
         contentPanel.add(new LoadingPanel(), CARD_LOADING);
-        return contentPanel;
+
+        wrapper.add(cabecalho, BorderLayout.NORTH);
+        wrapper.add(contentPanel, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private void configurarTabela() {
         tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tabela.setRowSelectionAllowed(true);
         tabela.setFillsViewportHeight(true);
-        tabela.setRowHeight(34);
+        tabela.setRowHeight(38);
         tabela.getTableHeader().setReorderingAllowed(false);
         tabela.setFont(UiStyles.TEXT_FONT);
-        tabela.getTableHeader().setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        tabela.setShowGrid(false);
+        tabela.setIntercellSpacing(new Dimension(0, 0));
+        tabela.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         UiStyles.styleTable(tabela);
+
+        JTableHeader header = tabela.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.setResizingAllowed(true);
+        header.setBackground(UiStyles.WHITE);
+        header.setForeground(UiStyles.TEXT_PRIMARY);
+        header.setFont(UiStyles.LABEL_FONT);
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
 
         DefaultTableCellRenderer buttonRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -618,13 +774,94 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         SelectionOption<StatusTransacao> status = obterSelecionado(statusComboBox);
         SelectionOption<Long> categoria = obterSelecionado(categoriaComboBox);
         SelectionOption<Long> conta = obterSelecionado(contaComboBox);
-        return !dataInicialField.getText().isBlank()
-                || !dataFinalField.getText().isBlank()
+        return !obterTextoData(dataInicialField).isBlank()
+                || !obterTextoData(dataFinalField).isBlank()
                 || (tipo != null && tipo.value() != null)
                 || (status != null && status.value() != null)
                 || (categoria != null && categoria.value() != null)
                 || (conta != null && conta.value() != null)
                 || !descricaoField.getText().isBlank();
+    }
+
+    private JScrollPane criarScrollPane() {
+        DashboardContentPanel conteudo = new DashboardContentPanel();
+        conteudo.setBackground(FUNDO_TRANSACOES);
+        conteudo.setBorder(BorderFactory.createEmptyBorder(20, 24, 24, 24));
+        conteudo.setLayout(new BoxLayout(conteudo, BoxLayout.Y_AXIS));
+
+        adicionarBloco(conteudo, criarCabecalho());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarResumo());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarFiltros());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarConteudo());
+
+        JScrollPane scrollPane = new JScrollPane(conteudo);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(true);
+        scrollPane.setBackground(FUNDO_TRANSACOES);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(FUNDO_TRANSACOES);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        return scrollPane;
+    }
+
+    private void adicionarBloco(JPanel container, JComponent componente) {
+        componente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        componente.setMaximumSize(new Dimension(Integer.MAX_VALUE, componente.getPreferredSize().height));
+        container.add(componente);
+    }
+
+    private void configurarCardsResumo() {
+        totalReceitasCard.definirCorDestaque(VERDE_DESTAQUE);
+        totalDespesasCard.definirCorDestaque(VERMELHO_DESTAQUE);
+        saldoPeriodoCard.definirCorDestaque(ROXO_DESTAQUE);
+        configurarTamanhoCardResumo(totalReceitasCard);
+        configurarTamanhoCardResumo(totalDespesasCard);
+        configurarTamanhoCardResumo(saldoPeriodoCard);
+        exibirResumo(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+    }
+
+    private void configurarTamanhoCardResumo(DashboardSummaryCard card) {
+        card.setPreferredSize(new Dimension(0, 154));
+        card.setMinimumSize(new Dimension(180, 154));
+    }
+
+    private void configurarCamposFiltro() {
+        dataInicialField.setPreferredSize(new Dimension(122, 38));
+        dataFinalField.setPreferredSize(new Dimension(122, 38));
+        tipoComboBox.setPreferredSize(new Dimension(130, 38));
+        statusComboBox.setPreferredSize(new Dimension(132, 38));
+        categoriaComboBox.setPreferredSize(new Dimension(170, 38));
+        contaComboBox.setPreferredSize(new Dimension(170, 38));
+        descricaoField.setPreferredSize(new Dimension(260, 38));
+        dataInicialField.setToolTipText("Informe a data no formato dd/MM/aaaa");
+        dataFinalField.setToolTipText("Informe a data no formato dd/MM/aaaa");
+    }
+
+    private JTextField criarCampoData() {
+        try {
+            MaskFormatter formatter = new MaskFormatter(MASCARA_DATA);
+            formatter.setPlaceholderCharacter('_');
+            formatter.setAllowsInvalid(false);
+
+            JFormattedTextField campo = new JFormattedTextField(formatter);
+            campo.setColumns(10);
+            campo.setFocusLostBehavior(JFormattedTextField.PERSIST);
+            return campo;
+        } catch (ParseException exception) {
+            throw new IllegalStateException("Mascara de data invalida.", exception);
+        }
+    }
+
+    private String obterTextoData(JTextField campo) {
+        String texto = campo.getText();
+        if (texto == null || texto.chars().noneMatch(Character::isDigit)) {
+            return "";
+        }
+        return texto;
     }
 
     private void executarNovaTransacao() {
@@ -661,6 +898,34 @@ public class TransacaoPanel extends JPanel implements TransacaoView {
         dialog.abrir();
         if (formularioAtual == dialog && !dialog.isDisplayable()) {
             formularioAtual = null;
+        }
+    }
+
+    private static final class DashboardContentPanel extends JPanel implements Scrollable {
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(visibleRect.height - 40, 40);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
         }
     }
 }

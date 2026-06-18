@@ -7,8 +7,6 @@ CREATE DATABASE IF NOT EXISTS controle_despesas
 
 USE controle_despesas;
 
--- Altere a senha abaixo antes de usar em producao.
--- Ela deve ser mantida igual ao valor configurado em DB_PASSWORD no arquivo .env.
 CREATE USER IF NOT EXISTS 'controle_app'@'localhost'
     IDENTIFIED BY 'senha123';
 
@@ -74,10 +72,6 @@ CREATE TABLE IF NOT EXISTS contas (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
--- A camada Java devera validar que:
--- 1. categoria_id pertence ao mesmo usuario_id da transacao;
--- 2. conta_id pertence ao mesmo usuario_id da transacao;
--- 3. o tipo da categoria corresponde ao tipo da transacao.
 CREATE TABLE IF NOT EXISTS transacoes (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     usuario_id BIGINT UNSIGNED NOT NULL,
@@ -139,9 +133,6 @@ CREATE TABLE IF NOT EXISTS cofrinhos (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
--- A camada Java devera validar que:
--- 1. usuario_id e o proprietario do cofrinho;
--- 2. retiradas nao ultrapassam o saldo calculado do cofrinho.
 CREATE TABLE IF NOT EXISTS movimentacoes_cofrinho (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     cofrinho_id BIGINT UNSIGNED NOT NULL,
@@ -168,28 +159,6 @@ CREATE TABLE IF NOT EXISTS movimentacoes_cofrinho (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
-
-
--- Consultas de verificacao uteis durante o desenvolvimento:
--- SHOW TABLES;
--- DESCRIBE usuarios;
--- DESCRIBE categorias;
--- DESCRIBE contas;
--- DESCRIBE transacoes;
--- DESCRIBE cofrinhos;
--- DESCRIBE movimentacoes_cofrinho;
--- SELECT
---     TABLE_NAME,
---     CONSTRAINT_NAME,
---     COLUMN_NAME,
---     REFERENCED_TABLE_NAME,
---     REFERENCED_COLUMN_NAME
--- FROM information_schema.KEY_COLUMN_USAGE
--- WHERE TABLE_SCHEMA = 'controle_despesas'
---   AND REFERENCED_TABLE_NAME IS NOT NULL
--- ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION;
-
-
 -- =========================================================
 -- DADOS DE TESTE PARA DEMONSTRACAO
 -- =========================================================
@@ -201,12 +170,6 @@ CREATE TABLE IF NOT EXISTS movimentacoes_cofrinho (
 -- =========================================================
 
 START TRANSACTION;
-
--- ---------------------------------------------------------
--- Remove uma carga de teste anterior, caso o script seja
--- executado novamente.
--- Outros usuarios do sistema nao serao afetados.
--- ---------------------------------------------------------
 
 SET @email_usuario_teste = CONVERT('teste@controle.com' USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
@@ -239,7 +202,6 @@ WHERE id = @usuario_teste_anterior;
 -- USUARIO DE TESTE
 -- ---------------------------------------------------------
 -- Senha em texto para login: Teste@123
--- Hash BCrypt com custo 10.
 
 INSERT INTO usuarios (
     nome,
@@ -787,74 +749,4 @@ INSERT INTO movimentacoes_cofrinho (
 );
 
 COMMIT;
-
--- =========================================================
--- CONSULTAS DE VERIFICACAO DOS DADOS DE TESTE
--- =========================================================
-
-SELECT
-    id,
-    nome,
-    email,
-    ativo
-FROM usuarios
-WHERE email = 'teste@controle.com';
-
-SELECT
-    id,
-    nome,
-    tipo,
-    ativo
-FROM categorias
-WHERE usuario_id = @usuario_id
-ORDER BY tipo, nome;
-
-SELECT
-    id,
-    nome,
-    tipo,
-    instituicao,
-    saldo_inicial,
-    ativo
-FROM contas
-WHERE usuario_id = @usuario_id
-ORDER BY nome;
-
-SELECT
-    id,
-    descricao,
-    tipo,
-    valor,
-    data_transacao,
-    status
-FROM transacoes
-WHERE usuario_id = @usuario_id
-ORDER BY data_transacao DESC, id DESC;
-
-SELECT
-    c.id,
-    c.nome,
-    c.valor_meta,
-    c.status,
-    COALESCE(
-        SUM(
-            CASE
-                WHEN mc.tipo = 'deposito' THEN mc.valor
-                WHEN mc.tipo = 'retirada' THEN -mc.valor
-                ELSE 0
-            END
-        ),
-        0
-    ) AS valor_atual
-FROM cofrinhos c
-LEFT JOIN movimentacoes_cofrinho mc
-    ON mc.cofrinho_id = c.id
-   AND mc.usuario_id = c.usuario_id
-WHERE c.usuario_id = @usuario_id
-GROUP BY
-    c.id,
-    c.nome,
-    c.valor_meta,
-    c.status
-ORDER BY c.nome;
 

@@ -12,11 +12,15 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.Scrollable;
+import javax.swing.SwingConstants;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -24,13 +28,17 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
@@ -46,6 +54,11 @@ public class ContaPanel extends JPanel implements ContaView {
     private static final String CARD_VAZIO = "vazio";
     private static final String CARD_LOADING = "loading";
     private static final int COLUMN_ACTIONS = 6;
+    private static final Color FUNDO_CONTAS = new Color(0xF5F7FB);
+    private static final Color FUNDO_DESTAQUE = new Color(0xEEF4FF);
+    private static final Color AZUL_DESTAQUE = new Color(0x2F6FED);
+    private static final Color VERDE_DESTAQUE = new Color(0x15803D);
+    private static final Color LARANJA_DESTAQUE = new Color(0xEA580C);
 
     private final JButton novaContaButton;
     private final JButton filtrarButton;
@@ -56,6 +69,9 @@ public class ContaPanel extends JPanel implements ContaView {
     private final JComboBox<OrdenacaoConta> ordenacaoComboBox;
     private final JTextField pesquisaField;
     private final JLabel mensagemLabel;
+    private final DashboardSummaryCard saldoTotalCard;
+    private final DashboardSummaryCard contasAtivasCard;
+    private final DashboardSummaryCard contasInativasCard;
     private final ContaTableModel tableModel;
     private final JTable tabela;
     private final CardLayout contentLayout;
@@ -75,8 +91,9 @@ public class ContaPanel extends JPanel implements ContaView {
     private boolean carregando;
 
     public ContaPanel() {
-        setLayout(new BorderLayout(18, 18));
-        setOpaque(false);
+        setLayout(new BorderLayout());
+        setOpaque(true);
+        setBackground(FUNDO_CONTAS);
 
         moneyFormatter = new MoneyFormatter();
         novaContaButton = new JButton("Nova conta");
@@ -90,6 +107,9 @@ public class ContaPanel extends JPanel implements ContaView {
         ordenacaoComboBox = new JComboBox<>(OrdenacaoConta.values());
         pesquisaField = new JTextField();
         mensagemLabel = UiStyles.createMessageLabel();
+        saldoTotalCard = new DashboardSummaryCard("Saldo exibido");
+        contasAtivasCard = new DashboardSummaryCard("Contas ativas");
+        contasInativasCard = new DashboardSummaryCard("Contas inativas");
         tableModel = new ContaTableModel(moneyFormatter);
         tabela = new JTable(tableModel);
         contentLayout = new CardLayout();
@@ -109,11 +129,12 @@ public class ContaPanel extends JPanel implements ContaView {
         UiStyles.styleComboBox(filtroStatusComboBox);
         UiStyles.styleComboBox(campoPesquisaComboBox);
         UiStyles.styleComboBox(ordenacaoComboBox);
+        configurarCardsResumo();
+        configurarCamposFiltro();
         configurarNomesComponentes();
         emptyStatePanel.setAcao(this::executarNovaConta);
 
-        add(criarCabecalho(), BorderLayout.NORTH);
-        add(criarConteudo(), BorderLayout.CENTER);
+        add(criarScrollPane(), BorderLayout.CENTER);
         configurarTabela();
         configurarFiltros();
         atualizarEstadoConteudo();
@@ -253,8 +274,17 @@ public class ContaPanel extends JPanel implements ContaView {
     }
 
     private JPanel criarCabecalho() {
-        JPanel wrapper = new JPanel(new BorderLayout(0, 16));
-        wrapper.setOpaque(false);
+        JPanel wrapper = new JPanel(new BorderLayout(24, 0));
+        wrapper.setBackground(UiStyles.WHITE);
+        wrapper.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(24, 26, 24, 26)
+        ));
+
+        JPanel faixaDestaque = new JPanel();
+        faixaDestaque.setBackground(AZUL_DESTAQUE);
+        faixaDestaque.setPreferredSize(new Dimension(6, 0));
+        wrapper.add(faixaDestaque, BorderLayout.WEST);
 
         JPanel titlePanel = new JPanel();
         titlePanel.setOpaque(false);
@@ -264,42 +294,155 @@ public class ContaPanel extends JPanel implements ContaView {
         titulo.setFont(UiStyles.TITLE_FONT);
         titulo.setForeground(UiStyles.TEXT_PRIMARY);
 
-        JLabel subtitulo = new JLabel("Cadastre carteiras e contas para acompanhar saldo inicial e saldo atual.");
+        JLabel subtitulo = new JLabel("Acompanhe carteiras, contas bancarias e saldos em uma visao organizada.");
         subtitulo.setFont(UiStyles.SUBTITLE_FONT);
         subtitulo.setForeground(UiStyles.TEXT_SECONDARY);
 
+        JPanel observacaoPanel = new JPanel(new BorderLayout(10, 0));
+        observacaoPanel.setBackground(FUNDO_DESTAQUE);
+        observacaoPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xD9E6FF)),
+                BorderFactory.createEmptyBorder(11, 13, 11, 13)
+        ));
+
+        JLabel indicador = new JLabel("i", SwingConstants.CENTER);
+        indicador.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        indicador.setForeground(AZUL_DESTAQUE);
+        indicador.setPreferredSize(new Dimension(22, 22));
+
+        JLabel observacao = new JLabel("Os saldos consideram o valor inicial da conta e as transacoes vinculadas.");
+        observacao.setFont(UiStyles.SMALL_FONT);
+        observacao.setForeground(UiStyles.TEXT_PRIMARY);
+
+        observacaoPanel.add(indicador, BorderLayout.WEST);
+        observacaoPanel.add(observacao, BorderLayout.CENTER);
+
         titlePanel.add(titulo);
-        titlePanel.add(Box.createVerticalStrut(6));
+        titlePanel.add(Box.createVerticalStrut(7));
         titlePanel.add(subtitulo);
+        titlePanel.add(Box.createVerticalStrut(16));
+        titlePanel.add(observacaoPanel);
 
-        JPanel top = new JPanel(new BorderLayout(16, 0));
-        top.setOpaque(false);
-        top.add(titlePanel, BorderLayout.WEST);
-        top.add(novaContaButton, BorderLayout.EAST);
-
-        wrapper.add(top, BorderLayout.NORTH);
-        wrapper.add(criarFiltros(), BorderLayout.CENTER);
-
-        mensagemLabel.setForeground(UiStyles.TEXT_SECONDARY);
-        wrapper.add(mensagemLabel, BorderLayout.SOUTH);
+        wrapper.add(titlePanel, BorderLayout.CENTER);
+        wrapper.add(novaContaButton, BorderLayout.EAST);
         return wrapper;
     }
 
+    private JPanel criarResumo() {
+        JPanel cards = new JPanel(new GridBagLayout());
+        cards.setOpaque(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 0, 14);
+        cards.add(saldoTotalCard, gbc);
+
+        gbc.gridx = 1;
+        cards.add(contasAtivasCard, gbc);
+
+        gbc.gridx = 2;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        cards.add(contasInativasCard, gbc);
+
+        return cards;
+    }
+
     private JPanel criarFiltros() {
-        JPanel filtros = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 18));
+        panel.setBackground(UiStyles.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(20, 24, 20, 24)
+        ));
+
+        JPanel cabecalho = new JPanel(new BorderLayout(16, 0));
+        cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
+
+        JPanel tituloPanel = new JPanel();
+        tituloPanel.setOpaque(false);
+        tituloPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
+        tituloPanel.setLayout(new BoxLayout(tituloPanel, BoxLayout.Y_AXIS));
+
+        JLabel titulo = new JLabel("Filtros de contas");
+        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
+        titulo.setForeground(UiStyles.TEXT_PRIMARY);
+
+        JLabel descricao = new JLabel("Organize a lista por tipo, status, texto de busca e ordenacao.");
+        descricao.setFont(UiStyles.SMALL_FONT);
+        descricao.setForeground(UiStyles.TEXT_SECONDARY);
+
+        tituloPanel.add(titulo);
+        tituloPanel.add(Box.createVerticalStrut(4));
+        tituloPanel.add(descricao);
+
+        cabecalho.add(tituloPanel, BorderLayout.CENTER);
+        panel.add(cabecalho, BorderLayout.NORTH);
+        panel.add(criarFormularioFiltros(), BorderLayout.CENTER);
+        panel.add(mensagemLabel, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private JPanel criarFormularioFiltros() {
+        JPanel filtros = new JPanel(new GridBagLayout());
         filtros.setOpaque(false);
 
-        campoPesquisaComboBox.setPreferredSize(new Dimension(150, 40));
-        pesquisaField.setPreferredSize(new Dimension(240, 40));
-        ordenacaoComboBox.setPreferredSize(new Dimension(190, 40));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 12, 12);
 
-        filtros.add(criarLabeled("Tipo", filtroTipoComboBox));
-        filtros.add(criarLabeled("Status", filtroStatusComboBox));
-        filtros.add(criarLabeled("Pesquisar por", campoPesquisaComboBox));
-        filtros.add(criarLabeled("Termo", pesquisaField));
-        filtros.add(criarLabeled("Ordenar por", ordenacaoComboBox));
-        filtros.add(filtrarButton);
-        filtros.add(limparFiltrosButton);
+        gbc.gridx = 0;
+        filtros.add(criarLabeled("Tipo", filtroTipoComboBox), gbc);
+
+        gbc.gridx = 1;
+        filtros.add(criarLabeled("Status", filtroStatusComboBox), gbc);
+
+        gbc.gridx = 2;
+        filtros.add(criarLabeled("Pesquisar por", campoPesquisaComboBox), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        filtros.add(criarLabeled("Termo", pesquisaField), gbc);
+
+        gbc.gridx = 2;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        filtros.add(criarLabeled("Ordenar por", ordenacaoComboBox), gbc);
+
+        JPanel acoes = new JPanel(new GridBagLayout());
+        acoes.setBackground(new Color(0xF9FBFF));
+        acoes.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)
+        ));
+
+        GridBagConstraints acaoGbc = new GridBagConstraints();
+        acaoGbc.gridy = 0;
+        acaoGbc.anchor = GridBagConstraints.WEST;
+        acaoGbc.insets = new Insets(0, 0, 0, 10);
+        acaoGbc.gridx = 0;
+        acoes.add(filtrarButton, acaoGbc);
+        acaoGbc.gridx = 1;
+        acaoGbc.insets = new Insets(0, 0, 0, 0);
+        acoes.add(limparFiltrosButton, acaoGbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(2, 0, 0, 0);
+        filtros.add(acoes, gbc);
+
         return filtros;
     }
 
@@ -319,6 +462,30 @@ public class ContaPanel extends JPanel implements ContaView {
     }
 
     private JPanel criarConteudo() {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 16));
+        wrapper.setBackground(UiStyles.WHITE);
+        wrapper.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiStyles.BORDER),
+                BorderFactory.createEmptyBorder(20, 24, 24, 24)
+        ));
+
+        JPanel cabecalho = new JPanel();
+        cabecalho.setOpaque(false);
+        cabecalho.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        cabecalho.setLayout(new BoxLayout(cabecalho, BoxLayout.Y_AXIS));
+
+        JLabel titulo = new JLabel("Lista de contas");
+        titulo.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 19));
+        titulo.setForeground(UiStyles.TEXT_PRIMARY);
+
+        JLabel descricao = new JLabel("Saldos, status e acoes das contas cadastradas.");
+        descricao.setFont(UiStyles.SMALL_FONT);
+        descricao.setForeground(UiStyles.TEXT_SECONDARY);
+
+        cabecalho.add(titulo);
+        cabecalho.add(Box.createVerticalStrut(4));
+        cabecalho.add(descricao);
+
         JPanel tabelaPanel = new JPanel(new BorderLayout());
         tabelaPanel.setOpaque(false);
 
@@ -330,18 +497,32 @@ public class ContaPanel extends JPanel implements ContaView {
         contentPanel.add(tabelaPanel, CARD_LISTA);
         contentPanel.add(emptyStatePanel, CARD_VAZIO);
         contentPanel.add(new LoadingPanel(), CARD_LOADING);
-        return contentPanel;
+
+        wrapper.add(cabecalho, BorderLayout.NORTH);
+        wrapper.add(contentPanel, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private void configurarTabela() {
         tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tabela.setRowSelectionAllowed(true);
         tabela.setFillsViewportHeight(true);
-        tabela.setRowHeight(34);
+        tabela.setRowHeight(38);
         tabela.getTableHeader().setReorderingAllowed(false);
         tabela.setFont(UiStyles.TEXT_FONT);
-        tabela.getTableHeader().setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        tabela.setShowGrid(false);
+        tabela.setIntercellSpacing(new Dimension(0, 0));
+        tabela.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         UiStyles.styleTable(tabela);
+
+        JTableHeader header = tabela.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.setResizingAllowed(true);
+        header.setBackground(UiStyles.WHITE);
+        header.setForeground(UiStyles.TEXT_PRIMARY);
+        header.setFont(UiStyles.LABEL_FONT);
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiStyles.BORDER));
 
         DefaultTableCellRenderer buttonRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -430,6 +611,7 @@ public class ContaPanel extends JPanel implements ContaView {
 
         tableModel.atualizarContas(filtradas);
         tableModel.atualizarSaldos(saldos);
+        atualizarResumo(filtradas);
         atualizarEstadoConteudo();
     }
 
@@ -552,6 +734,88 @@ public class ContaPanel extends JPanel implements ContaView {
         contentLayout.show(contentPanel, CARD_LISTA);
     }
 
+    private JScrollPane criarScrollPane() {
+        DashboardContentPanel conteudo = new DashboardContentPanel();
+        conteudo.setBackground(FUNDO_CONTAS);
+        conteudo.setBorder(BorderFactory.createEmptyBorder(20, 24, 24, 24));
+        conteudo.setLayout(new BoxLayout(conteudo, BoxLayout.Y_AXIS));
+
+        adicionarBloco(conteudo, criarCabecalho());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarResumo());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarFiltros());
+        conteudo.add(Box.createVerticalStrut(18));
+        adicionarBloco(conteudo, criarConteudo());
+
+        JScrollPane scrollPane = new JScrollPane(conteudo);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(true);
+        scrollPane.setBackground(FUNDO_CONTAS);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(FUNDO_CONTAS);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        return scrollPane;
+    }
+
+    private void adicionarBloco(JPanel container, JComponent componente) {
+        componente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        componente.setMaximumSize(new Dimension(Integer.MAX_VALUE, componente.getPreferredSize().height));
+        container.add(componente);
+    }
+
+    private void configurarCardsResumo() {
+        saldoTotalCard.definirCorDestaque(AZUL_DESTAQUE);
+        contasAtivasCard.definirCorDestaque(VERDE_DESTAQUE);
+        contasInativasCard.definirCorDestaque(LARANJA_DESTAQUE);
+        configurarTamanhoCardResumo(saldoTotalCard);
+        configurarTamanhoCardResumo(contasAtivasCard);
+        configurarTamanhoCardResumo(contasInativasCard);
+        atualizarResumo(List.of());
+    }
+
+    private void configurarTamanhoCardResumo(DashboardSummaryCard card) {
+        card.setPreferredSize(new Dimension(0, 154));
+        card.setMinimumSize(new Dimension(180, 154));
+    }
+
+    private void configurarCamposFiltro() {
+        filtroTipoComboBox.setPreferredSize(new Dimension(160, 38));
+        filtroStatusComboBox.setPreferredSize(new Dimension(140, 38));
+        campoPesquisaComboBox.setPreferredSize(new Dimension(170, 38));
+        ordenacaoComboBox.setPreferredSize(new Dimension(210, 38));
+        pesquisaField.setPreferredSize(new Dimension(330, 38));
+    }
+
+    private void atualizarResumo(List<Conta> contasExibidas) {
+        List<Conta> contasSeguras = contasExibidas != null ? contasExibidas : List.of();
+        BigDecimal saldoTotal = contasSeguras.stream()
+                .map(conta -> saldos.getOrDefault(conta.getId(), BigDecimal.ZERO))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long ativas = contasSeguras.stream().filter(Conta::isAtivo).count();
+        long inativas = contasSeguras.size() - ativas;
+
+        saldoTotalCard.atualizar(
+                moneyFormatter.format(saldoTotal),
+                contasSeguras.size() + " conta(s) exibida(s)",
+                contasOriginais.size() + " conta(s) cadastrada(s)",
+                saldoTotal.signum() >= 0 ? UiStyles.SUCCESS : UiStyles.ERROR
+        );
+        contasAtivasCard.atualizar(
+                String.valueOf(ativas),
+                "Disponiveis para novas transacoes.",
+                "Dentro do filtro atual.",
+                UiStyles.SUCCESS
+        );
+        contasInativasCard.atualizar(
+                String.valueOf(inativas),
+                "Mantidas no historico financeiro.",
+                "Dentro do filtro atual.",
+                UiStyles.TEXT_PRIMARY
+        );
+    }
+
     private void executarNovaConta() {
         if (novaContaAction != null) {
             novaContaAction.run();
@@ -583,6 +847,34 @@ public class ContaPanel extends JPanel implements ContaView {
         dialog.abrir();
         if (formularioAtual == dialog && !dialog.isDisplayable()) {
             formularioAtual = null;
+        }
+    }
+
+    private static final class DashboardContentPanel extends JPanel implements Scrollable {
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(visibleRect.height - 40, 40);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
         }
     }
 }

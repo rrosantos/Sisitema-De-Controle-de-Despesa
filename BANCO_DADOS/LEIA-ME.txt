@@ -52,3 +52,75 @@ Os dados de demonstração incluem:
 * retiradas.
 
 As movimentações dos cofrinhos são independentes das contas financeiras.
+
+-- =========================================================
+-- CONSULTAS DE VERIFICACAO DOS DADOS DE TESTE
+-- =========================================================
+
+SELECT
+    id,
+    nome,
+    email,
+    ativo
+FROM usuarios
+WHERE email = 'teste@controle.com';
+
+SELECT
+    id,
+    nome,
+    tipo,
+    ativo
+FROM categorias
+WHERE usuario_id = @usuario_id
+ORDER BY tipo, nome;
+
+SELECT
+    id,
+    nome,
+    tipo,
+    instituicao,
+    saldo_inicial,
+    ativo
+FROM contas
+WHERE usuario_id = @usuario_id
+ORDER BY nome;
+
+SELECT
+    id,
+    descricao,
+    tipo,
+    valor,
+    data_transacao,
+    status
+FROM transacoes
+WHERE usuario_id = @usuario_id
+ORDER BY data_transacao DESC, id DESC;
+
+SELECT
+    c.id,
+    c.nome,
+    c.valor_meta,
+    c.status,
+    COALESCE(
+        SUM(
+            CASE
+                WHEN mc.tipo = 'deposito' THEN mc.valor
+                WHEN mc.tipo = 'retirada' THEN -mc.valor
+                ELSE 0
+            END
+        ),
+        0
+    ) AS valor_atual
+FROM cofrinhos c
+LEFT JOIN movimentacoes_cofrinho mc
+    ON mc.cofrinho_id = c.id
+   AND mc.usuario_id = c.usuario_id
+WHERE c.usuario_id = @usuario_id
+GROUP BY
+    c.id,
+    c.nome,
+    c.valor_meta,
+    c.status
+ORDER BY c.nome;
+
+

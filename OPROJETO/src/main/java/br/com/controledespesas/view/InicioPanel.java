@@ -13,6 +13,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -22,6 +23,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
+import javax.swing.text.MaskFormatter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.BorderLayout;
@@ -35,6 +37,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -59,6 +62,7 @@ public class InicioPanel extends JPanel implements DashboardView {
 
     private static final int ESPACAMENTO_SECAO = 18;
     private static final int ALTURA_SECAO = 336;
+    private static final String MASCARA_DATA = "##/##/####";
 
     private final JLabel boasVindasLabel;
     private final JLabel periodoAtualLabel;
@@ -112,8 +116,8 @@ public class InicioPanel extends JPanel implements DashboardView {
         periodoAtualLabel = new JLabel("Período: aguardando carregamento");
         statusCarregamentoLabel = new JLabel(" ");
         erroLabel = new JLabel(" ");
-        dataInicialField = new JTextField(10);
-        dataFinalField = new JTextField(10);
+        dataInicialField = criarCampoData();
+        dataFinalField = criarCampoData();
         aplicarFiltroButton = new JButton("Aplicar filtro");
         atualizarButton = new JButton("Atualizar");
         mesAtualButton = new JButton("Mês atual");
@@ -260,12 +264,12 @@ public class InicioPanel extends JPanel implements DashboardView {
 
     @Override
     public LocalDate obterDataInicial() {
-        return DateFormatter.parse(dataInicialField.getText());
+        return DateFormatter.parse(obterTextoData(dataInicialField));
     }
 
     @Override
     public LocalDate obterDataFinal() {
-        return DateFormatter.parse(dataFinalField.getText());
+        return DateFormatter.parse(obterTextoData(dataFinalField));
     }
 
     @Override
@@ -677,6 +681,29 @@ public class InicioPanel extends JPanel implements DashboardView {
         grupo.add(Box.createVerticalStrut(6));
         grupo.add(campo);
         return grupo;
+    }
+
+    private JTextField criarCampoData() {
+        try {
+            MaskFormatter formatter = new MaskFormatter(MASCARA_DATA);
+            formatter.setPlaceholderCharacter('_');
+            formatter.setAllowsInvalid(false);
+
+            JFormattedTextField campo = new JFormattedTextField(formatter);
+            campo.setColumns(10);
+            campo.setFocusLostBehavior(JFormattedTextField.PERSIST);
+            return campo;
+        } catch (ParseException exception) {
+            throw new IllegalStateException("Mascara de data invalida.", exception);
+        }
+    }
+
+    private String obterTextoData(JTextField campo) {
+        String texto = campo.getText();
+        if (texto == null || texto.chars().noneMatch(Character::isDigit)) {
+            return "";
+        }
+        return texto;
     }
 
     private JPanel criarPainelErro() {
