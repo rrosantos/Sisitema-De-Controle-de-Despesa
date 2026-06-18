@@ -2,6 +2,9 @@ package br.com.controledespesas.model;
 
 import java.time.LocalDateTime;
 
+/**
+ * Representa a entidade Usuario manipulada pelo sistema.
+ */
 public class Usuario {
 
     private Long id;

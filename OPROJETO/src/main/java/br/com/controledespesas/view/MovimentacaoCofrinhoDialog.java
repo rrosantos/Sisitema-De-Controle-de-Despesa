@@ -24,10 +24,14 @@ import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Exibe e controla o dialogo Swing de MovimentacaoCofrinho.
+ */
 public class MovimentacaoCofrinhoDialog extends JDialog {
 
     private final JTextField valorField;
@@ -47,7 +51,8 @@ public class MovimentacaoCofrinhoDialog extends JDialog {
         this.aoSalvar = Objects.requireNonNull(aoSalvar, "aoSalvar nao pode ser nulo.");
         this.moneyFormatter = Objects.requireNonNull(moneyFormatter, "moneyFormatter nao pode ser nulo.");
         valorField = new JTextField();
-        dataField = new JTextField();
+        InputFormatters.instalarFormatoMonetario(valorField, this.moneyFormatter);
+        dataField = InputFormatters.criarCampoData();
         observacaoArea = new JTextArea(5, 20);
         mensagemLabel = UiStyles.createMessageLabel();
         cancelarButton = new JButton("Cancelar");
@@ -59,6 +64,7 @@ public class MovimentacaoCofrinhoDialog extends JDialog {
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setContentPane(criarConteudo(resumo));
 
+        valorField.setText(moneyFormatter.formatForInput(BigDecimal.ZERO));
         dataField.setText(DateFormatter.format(LocalDate.now()));
 
         getRootPane().setDefaultButton(salvarButton);
@@ -181,10 +187,11 @@ public class MovimentacaoCofrinhoDialog extends JDialog {
         try {
             DadosMovimentacaoCofrinhoForm dados = CofrinhoFormSupport.criarDadosMovimentacao(
                     valorField.getText(),
-                    dataField.getText(),
+                    InputFormatters.obterTextoData(dataField),
                     observacaoArea.getText(),
                     moneyFormatter
             );
+            valorField.setText(moneyFormatter.formatForInput(dados.valor()));
             setProcessando(true);
             aoSalvar.accept(dados);
         } catch (RuntimeException exception) {

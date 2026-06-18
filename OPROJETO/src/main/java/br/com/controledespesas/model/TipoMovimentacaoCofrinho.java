@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os tipos validos de MovimentacaoCofrinho usados pelo sistema.
+ */
 public enum TipoMovimentacaoCofrinho {
     DEPOSITO("deposito"),
     RETIRADA("retirada");

@@ -8,6 +8,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
+/**
+ * Valida e monta dados dos formularios de cofrinho e movimentacao.
+ */
 final class CofrinhoFormSupport {
 
     private static final String MENSAGEM_VALOR_META_ZERO = "O valor da meta deve ser maior que zero.";

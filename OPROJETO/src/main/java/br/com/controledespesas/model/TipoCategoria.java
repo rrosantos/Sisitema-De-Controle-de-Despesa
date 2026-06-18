@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os tipos validos de Categoria usados pelo sistema.
+ */
 public enum TipoCategoria {
     RECEITA("receita"),
     DESPESA("despesa");

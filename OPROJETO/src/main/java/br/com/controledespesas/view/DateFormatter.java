@@ -8,6 +8,9 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
+/**
+ * Converte e formata datas no padrao dd/MM/aaaa usado pela interface.
+ */
 public final class DateFormatter {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.of("pt", "BR"))

@@ -34,6 +34,9 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena metas financeiras, movimentacoes e historico de cofrinhos.
+ */
 public class CofrinhoController {
 
     private static final Logger LOGGER = Logger.getLogger(CofrinhoController.class.getName());

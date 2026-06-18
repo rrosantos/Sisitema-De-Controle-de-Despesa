@@ -10,6 +10,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 
+/**
+ * Componente visual reutilizavel para exibir um indicador resumido do dashboard.
+ */
 class DashboardSummaryCard extends JPanel {
 
     private final JLabel titleLabel;

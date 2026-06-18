@@ -7,15 +7,18 @@ import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Usuario;
 import br.com.controledespesas.security.PasswordHasher;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.util.ValidationUtils;
 import br.com.controledespesas.view.contract.LoginView;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena autenticacao de usuarios e abertura da tela principal apos login valido.
+ */
 public class LoginController {
 
     private static final Logger LOGGER = Logger.getLogger(LoginController.class.getName());
@@ -75,7 +78,7 @@ public class LoginController {
     private Usuario autenticar(String email, char[] senhaParaProcessamento) throws SQLException {
         String senha = new String(senhaParaProcessamento);
         try {
-            String emailNormalizado = normalizeEmail(email);
+            String emailNormalizado = ValidationUtils.normalizeEmail(email);
             validarSenhaInformada(senha);
 
             Usuario usuario = usuarioDAO.buscarPorEmail(emailNormalizado)
@@ -120,40 +123,6 @@ public class LoginController {
 
         LOGGER.log(Level.SEVERE, "Erro inesperado ao autenticar usuario.", throwable);
         loginView.mostrarErro(MENSAGEM_ERRO_INESPERADO);
-    }
-
-    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private String normalizeEmail(String email) {
-        String normalizado = normalizeRequiredText(email, "E-mail", 255).toLowerCase(Locale.ROOT);
-        if (!emailValido(normalizado)) {
-            throw new ValidacaoException("E-mail invalido.");
-        }
-        return normalizado;
-    }
-
-    private boolean emailValido(String email) {
-        int indiceArroba = email.indexOf('@');
-        int ultimoPonto = email.lastIndexOf('.');
-        return indiceArroba > 0
-                && ultimoPonto > indiceArroba + 1
-                && ultimoPonto < email.length() - 1
-                && email.indexOf(' ') < 0;
     }
 
     private void validarSenhaInformada(String senha) {

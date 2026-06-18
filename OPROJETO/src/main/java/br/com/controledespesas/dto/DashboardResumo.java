@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Transporta valores consolidados para exibicao de Dashboard.
+ */
 public record DashboardResumo(
         LocalDate dataInicial,
         LocalDate dataFinal,

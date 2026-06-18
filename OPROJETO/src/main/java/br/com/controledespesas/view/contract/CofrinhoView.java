@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Cofrinho.
+ */
 public interface CofrinhoView {
 
     void exibirCofrinhos(List<CofrinhoResumo> cofrinhos);

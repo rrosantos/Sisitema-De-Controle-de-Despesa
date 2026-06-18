@@ -2,6 +2,9 @@ package br.com.controledespesas.model;
 
 import java.time.LocalDateTime;
 
+/**
+ * Representa a entidade Categoria manipulada pelo sistema.
+ */
 public class Categoria {
 
     private Long id;

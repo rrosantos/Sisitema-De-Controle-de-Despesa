@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
+/**
+ * Calcula o percentual de progresso de metas de cofrinho com BigDecimal.
+ */
 public final class CofrinhoProgressCalculator {
 
     private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");

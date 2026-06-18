@@ -13,11 +13,12 @@ import br.com.controledespesas.model.StatusTransacao;
 import br.com.controledespesas.model.TipoTransacao;
 import br.com.controledespesas.model.Transacao;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.util.SqlExceptionUtils;
+import br.com.controledespesas.util.ValidationUtils;
 import br.com.controledespesas.view.contract.DadosTransacaoForm;
 import br.com.controledespesas.view.contract.TransacaoView;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -29,6 +30,9 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena filtros, resumo e operacoes transacionais de receitas e despesas.
+ */
 public class TransacaoController {
 
     private static final Logger LOGGER = Logger.getLogger(TransacaoController.class.getName());
@@ -227,7 +231,7 @@ public class TransacaoController {
     private ResultadoCarregamentoTransacoes carregarDados(TransacaoFiltro filtro, String mensagemSucesso) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
         TransacaoFiltro filtroNormalizado = normalizarFiltro(filtro);
-        validateDateRange(filtroNormalizado.dataInicial(), filtroNormalizado.dataFinal());
+        ValidationUtils.validateDateRange(filtroNormalizado.dataInicial(), filtroNormalizado.dataFinal());
         List<Categoria> categorias = categoriaDAO.listarPorUsuario(usuarioId);
         List<Conta> contas = contaDAO.listarPorUsuario(usuarioId);
         List<Transacao> transacoes = filtroNormalizado.possuiFiltros()
@@ -342,15 +346,15 @@ public class TransacaoController {
     private Transacao cadastrar(Long usuarioId, Long categoriaId, Long contaId, TipoTransacao tipo, String descricao,
                                 BigDecimal valor, LocalDate dataTransacao, StatusTransacao status, String observacoes)
             throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        Long idCategoria = requireId(categoriaId, "ID da categoria");
-        Long idConta = requireId(contaId, "ID da conta");
-        TipoTransacao tipoTransacao = requireValue(tipo, "Tipo da transacao");
-        String descricaoNormalizada = normalizeRequiredText(descricao, "Descricao da transacao", MAX_DESCRICAO);
-        BigDecimal valorNormalizado = normalizeMonetaryValue(valor, "Valor da transacao", false);
-        LocalDate data = requireDate(dataTransacao, "Data da transacao");
-        StatusTransacao statusTransacao = requireValue(status, "Status da transacao");
-        String observacoesNormalizadas = normalizeOptionalText(observacoes, "Observacoes", MAX_OBSERVACOES);
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        Long idCategoria = ValidationUtils.requireId(categoriaId, "ID da categoria");
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        TipoTransacao tipoTransacao = ValidationUtils.requireValue(tipo, "Tipo da transacao");
+        String descricaoNormalizada = ValidationUtils.normalizeRequiredText(descricao, "Descricao da transacao", MAX_DESCRICAO);
+        BigDecimal valorNormalizado = ValidationUtils.normalizeMonetaryValue(valor, "Valor da transacao", false);
+        LocalDate data = ValidationUtils.requireDate(dataTransacao, "Data da transacao");
+        StatusTransacao statusTransacao = ValidationUtils.requireValue(status, "Status da transacao");
+        String observacoesNormalizadas = ValidationUtils.normalizeOptionalText(observacoes, "Observacoes", MAX_OBSERVACOES);
 
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
@@ -383,10 +387,10 @@ public class TransacaoController {
                 return transacao;
             } catch (SQLException | RuntimeException exception) {
                 falha = exception;
-                rollback(connection, exception);
+                SqlExceptionUtils.rollback(connection, exception);
                 throw exception;
             } finally {
-                restoreAutoCommit(connection, originalAutoCommit, falha);
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
             }
         }
     }
@@ -394,16 +398,16 @@ public class TransacaoController {
     private Transacao atualizar(Long transacaoId, Long usuarioId, Long categoriaId, Long contaId, TipoTransacao tipo,
                                 String descricao, BigDecimal valor, LocalDate dataTransacao, StatusTransacao status,
                                 String observacoes) throws SQLException {
-        Long idTransacao = requireId(transacaoId, "ID da transacao");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        Long idCategoria = requireId(categoriaId, "ID da categoria");
-        Long idConta = requireId(contaId, "ID da conta");
-        TipoTransacao tipoTransacao = requireValue(tipo, "Tipo da transacao");
-        String descricaoNormalizada = normalizeRequiredText(descricao, "Descricao da transacao", MAX_DESCRICAO);
-        BigDecimal valorNormalizado = normalizeMonetaryValue(valor, "Valor da transacao", false);
-        LocalDate data = requireDate(dataTransacao, "Data da transacao");
-        StatusTransacao statusTransacao = requireValue(status, "Status da transacao");
-        String observacoesNormalizadas = normalizeOptionalText(observacoes, "Observacoes", MAX_OBSERVACOES);
+        Long idTransacao = ValidationUtils.requireId(transacaoId, "ID da transacao");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        Long idCategoria = ValidationUtils.requireId(categoriaId, "ID da categoria");
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        TipoTransacao tipoTransacao = ValidationUtils.requireValue(tipo, "Tipo da transacao");
+        String descricaoNormalizada = ValidationUtils.normalizeRequiredText(descricao, "Descricao da transacao", MAX_DESCRICAO);
+        BigDecimal valorNormalizado = ValidationUtils.normalizeMonetaryValue(valor, "Valor da transacao", false);
+        LocalDate data = ValidationUtils.requireDate(dataTransacao, "Data da transacao");
+        StatusTransacao statusTransacao = ValidationUtils.requireValue(status, "Status da transacao");
+        String observacoesNormalizadas = ValidationUtils.normalizeOptionalText(observacoes, "Observacoes", MAX_OBSERVACOES);
 
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
@@ -454,44 +458,44 @@ public class TransacaoController {
                 return transacaoExistente;
             } catch (SQLException | RuntimeException exception) {
                 falha = exception;
-                rollback(connection, exception);
+                SqlExceptionUtils.rollback(connection, exception);
                 throw exception;
             } finally {
-                restoreAutoCommit(connection, originalAutoCommit, falha);
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
             }
         }
     }
 
     private void excluir(Long transacaoId, Long usuarioId) throws SQLException {
-        Long idTransacao = requireId(transacaoId, "ID da transacao");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idTransacao = ValidationUtils.requireId(transacaoId, "ID da transacao");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         buscarTransacaoExistente(idTransacao, idUsuario);
         transacaoDAO.excluir(idTransacao, idUsuario);
     }
 
     private List<Transacao> listarPorUsuario(Long usuarioId) throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         return transacaoDAO.listarPorUsuario(idUsuario);
     }
 
     private List<Transacao> filtrar(Long usuarioId, TransacaoFiltro filtro) throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         TransacaoFiltro filtroNormalizado = normalizarFiltro(filtro);
-        validateDateRange(filtroNormalizado.dataInicial(), filtroNormalizado.dataFinal());
+        ValidationUtils.validateDateRange(filtroNormalizado.dataInicial(), filtroNormalizado.dataFinal());
         return transacaoDAO.filtrar(idUsuario, filtroNormalizado);
     }
 
     private BigDecimal calcularTotalReceitas(Long usuarioId, LocalDate dataInicial, LocalDate dataFinal)
             throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        validateDateRange(dataInicial, dataFinal);
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        ValidationUtils.validateDateRange(dataInicial, dataFinal);
         return transacaoDAO.calcularTotalReceitas(idUsuario, dataInicial, dataFinal);
     }
 
     private BigDecimal calcularTotalDespesas(Long usuarioId, LocalDate dataInicial, LocalDate dataFinal)
             throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        validateDateRange(dataInicial, dataFinal);
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        ValidationUtils.validateDateRange(dataInicial, dataFinal);
         return transacaoDAO.calcularTotalDespesas(idUsuario, dataInicial, dataFinal);
     }
 
@@ -499,7 +503,7 @@ public class TransacaoController {
         TransacaoFiltro filtroBase = filtro != null ? filtro : new TransacaoFiltro();
         validarIdOpcional(filtroBase.categoriaId(), "ID da categoria");
         validarIdOpcional(filtroBase.contaId(), "ID da conta");
-        String descricao = normalizeOptionalText(filtroBase.descricao(), "Descricao da transacao", MAX_DESCRICAO);
+        String descricao = ValidationUtils.normalizeOptionalText(filtroBase.descricao(), "Descricao da transacao", MAX_DESCRICAO);
 
         return new TransacaoFiltro(
                 filtroBase.dataInicial(),
@@ -514,7 +518,7 @@ public class TransacaoController {
 
     private void validarIdOpcional(Long valor, String nomeCampo) {
         if (valor != null) {
-            requireId(valor, nomeCampo);
+            ValidationUtils.requireId(valor, nomeCampo);
         }
     }
 
@@ -568,119 +572,6 @@ public class TransacaoController {
 
         if (!compativel) {
             throw new RegraNegocioException("O status informado nao e compativel com o tipo da transacao.");
-        }
-    }
-
-    private Long requireId(Long valor, String nomeCampo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-        if (valor <= 0) {
-            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
-        }
-        return valor;
-    }
-
-    private <T> T requireValue(T valor, String nomeCampo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-        return valor;
-    }
-
-    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            return null;
-        }
-
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            return null;
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private BigDecimal normalizeMonetaryValue(BigDecimal valor, String nomeCampo, boolean permitirZero) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        BigDecimal normalizado = valor.setScale(2, RoundingMode.HALF_UP);
-        int comparacao = normalizado.compareTo(BigDecimal.ZERO);
-        if (permitirZero) {
-            if (comparacao < 0) {
-                throw new ValidacaoException(nomeCampo + " nao pode ser negativo.");
-            }
-        } else if (comparacao <= 0) {
-            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
-        }
-
-        return normalizado;
-    }
-
-    private LocalDate requireDate(LocalDate data, String nomeCampo) {
-        if (data == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatoria.");
-        }
-        return data;
-    }
-
-    private void validateDateRange(LocalDate dataInicial, LocalDate dataFinal) {
-        if (dataInicial != null && dataFinal != null && dataInicial.isAfter(dataFinal)) {
-            throw new ValidacaoException("A data inicial nao pode ser posterior a data final.");
-        }
-    }
-
-    private void rollback(Connection connection, Throwable cause) {
-        if (connection == null) {
-            return;
-        }
-
-        try {
-            connection.rollback();
-        } catch (SQLException rollbackException) {
-            if (cause != null) {
-                cause.addSuppressed(rollbackException);
-            }
-        }
-    }
-
-    private void restoreAutoCommit(Connection connection, boolean originalAutoCommit, Throwable cause)
-            throws SQLException {
-        if (connection == null) {
-            return;
-        }
-
-        try {
-            connection.setAutoCommit(originalAutoCommit);
-        } catch (SQLException exception) {
-            if (cause != null) {
-                cause.addSuppressed(exception);
-                return;
-            }
-            throw exception;
         }
     }
 

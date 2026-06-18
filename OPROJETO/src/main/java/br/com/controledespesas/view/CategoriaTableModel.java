@@ -6,6 +6,9 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapta dados de Categoria para exibicao em tabela Swing.
+ */
 class CategoriaTableModel extends AbstractTableModel {
 
     private static final String[] COLUNAS = {"Nome", "Tipo", "Descricao", "Status", "Acoes"};

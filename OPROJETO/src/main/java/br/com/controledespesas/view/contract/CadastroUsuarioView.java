@@ -1,5 +1,12 @@
 package br.com.controledespesas.view.contract;
 
+import br.com.controledespesas.model.Usuario;
+
+import java.util.List;
+
+/**
+ * Define o contrato de exibicao e eventos da view de CadastroUsuario.
+ */
 public interface CadastroUsuarioView {
 
     String getNome();
@@ -27,4 +34,12 @@ public interface CadastroUsuarioView {
     void setCadastrarAction(Runnable action);
 
     void setVoltarAction(Runnable action);
+
+    default boolean suportaListagemUsuarios() {
+        return false;
+    }
+
+    default void exibirUsuarios(List<Usuario> usuarios) {
+        // Implementacao opcional para a tela de usuarios no menu principal.
+    }
 }

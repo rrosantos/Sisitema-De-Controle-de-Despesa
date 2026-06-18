@@ -10,12 +10,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * The DAO expects senhaHash to already be prepared for storage.
- * Password hashing is intentionally not performed in this layer.
+ * Realiza a persistencia JDBC e consultas relacionadas a Usuario.
  */
 public class UsuarioDAO {
 
@@ -93,6 +94,26 @@ public class UsuarioDAO {
         }
 
         return Optional.empty();
+    }
+
+    public List<Usuario> listarTodos() throws SQLException {
+        String sql = """
+                SELECT id, nome, email, senha, ativo, criado_em, atualizado_em
+                FROM usuarios
+                ORDER BY nome, email
+                """;
+
+        List<Usuario> usuarios = new ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                Usuario usuario = mapearUsuario(resultSet);
+                usuario.setSenhaHash(null);
+                usuarios.add(usuario);
+            }
+        }
+        return usuarios;
     }
 
     public boolean emailExiste(String email) throws SQLException {

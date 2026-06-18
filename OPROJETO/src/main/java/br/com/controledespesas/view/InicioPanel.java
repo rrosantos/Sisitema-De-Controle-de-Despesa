@@ -41,6 +41,9 @@ import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Inicio.
+ */
 public class InicioPanel extends JPanel implements DashboardView {
 
     private static final String ESTADO_CONTEUDO = "conteudo";

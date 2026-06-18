@@ -5,20 +5,24 @@ import br.com.controledespesas.exception.RegraNegocioException;
 import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Usuario;
 import br.com.controledespesas.security.PasswordHasher;
+import br.com.controledespesas.util.SqlExceptionUtils;
+import br.com.controledespesas.util.ValidationUtils;
 import br.com.controledespesas.view.contract.CadastroUsuarioView;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena o cadastro de novos usuarios e suas validacoes de formulario.
+ */
 public class CadastroUsuarioController {
 
     private static final Logger LOGGER = Logger.getLogger(CadastroUsuarioController.class.getName());
     private static final int MAX_NOME = 150;
-    private static final int DUPLICATE_KEY_ERROR_CODE = 1062;
     private static final String MENSAGEM_SUCESSO = "Conta criada com sucesso. Agora voce ja pode entrar.";
     private static final String MENSAGEM_EMAIL_DUPLICADO = "Ja existe um usuario cadastrado com este e-mail.";
     private static final String MENSAGEM_ERRO_BANCO =
@@ -31,10 +35,19 @@ public class CadastroUsuarioController {
     private final CadastroUsuarioView cadastroUsuarioView;
     private final ApplicationController applicationController;
     private final AsyncTaskExecutor asyncTaskExecutor;
+    private final Consumer<Usuario> cadastroSuccessHandler;
+    private final Runnable voltarHandler;
 
     public CadastroUsuarioController(UsuarioDAO usuarioDAO, PasswordHasher passwordHasher,
                                      CadastroUsuarioView cadastroUsuarioView,
                                      ApplicationController applicationController, AsyncTaskExecutor asyncTaskExecutor) {
+        this(usuarioDAO, passwordHasher, cadastroUsuarioView, applicationController, asyncTaskExecutor, null, null);
+    }
+
+    public CadastroUsuarioController(UsuarioDAO usuarioDAO, PasswordHasher passwordHasher,
+                                     CadastroUsuarioView cadastroUsuarioView,
+                                     ApplicationController applicationController, AsyncTaskExecutor asyncTaskExecutor,
+                                     Consumer<Usuario> cadastroSuccessHandler, Runnable voltarHandler) {
         this.usuarioDAO = Objects.requireNonNull(usuarioDAO, "usuarioDAO nao pode ser nulo.");
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher nao pode ser nulo.");
         this.cadastroUsuarioView =
@@ -42,9 +55,12 @@ public class CadastroUsuarioController {
         this.applicationController =
                 Objects.requireNonNull(applicationController, "applicationController nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
+        this.cadastroSuccessHandler = cadastroSuccessHandler;
+        this.voltarHandler = voltarHandler;
 
         this.cadastroUsuarioView.setCadastrarAction(this::cadastrar);
         this.cadastroUsuarioView.setVoltarAction(this::voltarParaLogin);
+        carregarUsuariosSeDisponivel();
     }
 
     public void cadastrar() {
@@ -73,6 +89,10 @@ public class CadastroUsuarioController {
 
     public void voltarParaLogin() {
         cadastroUsuarioView.limparMensagem();
+        if (voltarHandler != null) {
+            voltarHandler.run();
+            return;
+        }
         applicationController.mostrarLogin();
     }
 
@@ -82,10 +102,10 @@ public class CadastroUsuarioController {
         String confirmacao = new String(confirmacaoParaProcessamento);
 
         try {
-            String nomeNormalizado = normalizeRequiredText(nome, "Nome", MAX_NOME);
-            String emailNormalizado = normalizeEmail(email);
-            validatePassword(senha);
-            validatePasswordConfirmation(senha, confirmacao);
+            String nomeNormalizado = ValidationUtils.normalizeRequiredText(nome, "Nome", MAX_NOME);
+            String emailNormalizado = ValidationUtils.normalizeEmail(email);
+            ValidationUtils.validatePassword(senha);
+            ValidationUtils.validatePasswordConfirmation(senha, confirmacao);
 
             if (usuarioDAO.emailExiste(emailNormalizado)) {
                 throw new RegraNegocioException(MENSAGEM_EMAIL_DUPLICADO);
@@ -101,7 +121,7 @@ public class CadastroUsuarioController {
                 usuarioDAO.inserir(usuario);
                 return sanitizarUsuario(usuario);
             } catch (SQLException exception) {
-                if (isDuplicateKey(exception)) {
+                if (SqlExceptionUtils.isDuplicateKey(exception)) {
                     throw new RegraNegocioException(MENSAGEM_EMAIL_DUPLICADO, exception);
                 }
                 throw exception;
@@ -115,6 +135,11 @@ public class CadastroUsuarioController {
     }
 
     private void onCadastroSuccess(Usuario usuario) {
+        carregarUsuariosSeDisponivel();
+        if (cadastroSuccessHandler != null) {
+            cadastroSuccessHandler.accept(usuario);
+            return;
+        }
         cadastroUsuarioView.limparCampos();
         applicationController.mostrarLoginComEmail(usuario.getEmail(), MENSAGEM_SUCESSO);
     }
@@ -140,59 +165,18 @@ public class CadastroUsuarioController {
         cadastroUsuarioView.mostrarErro(MENSAGEM_ERRO_INESPERADO);
     }
 
-    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+    private void carregarUsuariosSeDisponivel() {
+        if (!cadastroUsuarioView.suportaListagemUsuarios()) {
+            return;
         }
 
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private String normalizeEmail(String email) {
-        String normalizado = normalizeRequiredText(email, "E-mail", 255).toLowerCase(Locale.ROOT);
-        if (!emailValido(normalizado)) {
-            throw new ValidacaoException("E-mail invalido.");
-        }
-        return normalizado;
-    }
-
-    private boolean emailValido(String email) {
-        int indiceArroba = email.indexOf('@');
-        int ultimoPonto = email.lastIndexOf('.');
-        return indiceArroba > 0
-                && ultimoPonto > indiceArroba + 1
-                && ultimoPonto < email.length() - 1
-                && email.indexOf(' ') < 0;
-    }
-
-    private void validatePassword(String senha) {
-        if (senha == null || senha.isBlank()) {
-            throw new ValidacaoException("A senha e obrigatoria.");
-        }
-        if (senha.length() < 8) {
-            throw new ValidacaoException("A senha deve ter pelo menos 8 caracteres.");
-        }
-        if (senha.length() > 72) {
-            throw new ValidacaoException("A senha deve ter no maximo 72 caracteres.");
-        }
-    }
-
-    private void validatePasswordConfirmation(String senha, String confirmacao) {
-        if (confirmacao == null || confirmacao.isBlank()) {
-            throw new ValidacaoException("A confirmacao de senha e obrigatoria.");
-        }
-        if (!senha.equals(confirmacao)) {
-            throw new ValidacaoException("A senha e a confirmacao de senha devem ser iguais.");
-        }
+        asyncTaskExecutor.execute(
+                usuarioDAO::listarTodos,
+                cadastroUsuarioView::exibirUsuarios,
+                this::onCadastroError,
+                () -> {
+                }
+        );
     }
 
     private Usuario sanitizarUsuario(Usuario usuario) {
@@ -205,9 +189,5 @@ public class CadastroUsuarioController {
         copia.setAtualizadoEm(usuario.getAtualizadoEm());
         copia.setSenhaHash(null);
         return copia;
-    }
-
-    private boolean isDuplicateKey(SQLException exception) {
-        return exception != null && exception.getErrorCode() == DUPLICATE_KEY_ERROR_CODE;
     }
 }

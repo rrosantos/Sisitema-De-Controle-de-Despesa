@@ -23,6 +23,9 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena filtros, atalhos e carregamento assíncrono do resumo financeiro do dashboard.
+ */
 public class DashboardController implements DashboardRefreshNotifier {
 
     private static final Logger LOGGER = Logger.getLogger(DashboardController.class.getName());

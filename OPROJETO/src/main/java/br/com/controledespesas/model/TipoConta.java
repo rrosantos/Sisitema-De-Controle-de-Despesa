@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os tipos validos de Conta usados pelo sistema.
+ */
 public enum TipoConta {
     CARTEIRA("carteira"),
     CONTA_CORRENTE("conta_corrente"),

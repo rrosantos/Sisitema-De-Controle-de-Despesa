@@ -7,6 +7,9 @@ import br.com.controledespesas.model.TipoMovimentacaoCofrinho;
 import br.com.controledespesas.model.TipoTransacao;
 import br.com.controledespesas.model.StatusTransacao;
 
+/**
+ * Centraliza textos de exibicao de enums e valores opcionais da interface.
+ */
 final class ViewFormatters {
 
     private static final String DASH = "-";

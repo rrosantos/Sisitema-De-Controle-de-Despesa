@@ -22,9 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Cross-entity business validations such as category ownership, account ownership,
- * category/transaction type compatibility, and complete status compatibility remain
- * mandatory, but they are enforced by the controller layer.
+ * Realiza a persistencia JDBC e consultas relacionadas a Transacao.
  */
 public class TransacaoDAO {
 

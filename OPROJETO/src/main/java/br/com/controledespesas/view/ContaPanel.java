@@ -48,6 +48,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Conta.
+ */
 public class ContaPanel extends JPanel implements ContaView {
 
     private static final String CARD_LISTA = "lista";
@@ -129,6 +132,7 @@ public class ContaPanel extends JPanel implements ContaView {
         UiStyles.styleComboBox(filtroStatusComboBox);
         UiStyles.styleComboBox(campoPesquisaComboBox);
         UiStyles.styleComboBox(ordenacaoComboBox);
+        campoPesquisaComboBox.setSelectedItem(CampoPesquisaConta.NOME);
         configurarCardsResumo();
         configurarCamposFiltro();
         configurarNomesComponentes();
@@ -559,6 +563,12 @@ public class ContaPanel extends JPanel implements ContaView {
 
                 int row = tabela.rowAtPoint(event.getPoint());
                 int column = tabela.columnAtPoint(event.getPoint());
+                if (row >= 0 && event.getClickCount() == 2 && column != COLUMN_ACTIONS) {
+                    tabela.setRowSelectionInterval(row, row);
+                    executarEdicao(tableModel.getContaAt(row));
+                    return;
+                }
+
                 if (row < 0 || column != COLUMN_ACTIONS) {
                     return;
                 }
@@ -599,6 +609,11 @@ public class ContaPanel extends JPanel implements ContaView {
     }
 
     private void aplicarFiltros() {
+        if (!validarPesquisaComplexa()) {
+            return;
+        }
+        limparErroPesquisaComplexa();
+
         List<Conta> filtradas = contaListSupport.filtrarEOrdenar(
                 contasOriginais,
                 saldos,
@@ -613,6 +628,32 @@ public class ContaPanel extends JPanel implements ContaView {
         tableModel.atualizarSaldos(saldos);
         atualizarResumo(filtradas);
         atualizarEstadoConteudo();
+    }
+
+    private void limparErroPesquisaComplexa() {
+        String mensagem = mensagemLabel.getText();
+        if (mensagem != null && mensagem.startsWith("Para pesquisar por ")) {
+            limparMensagem();
+        }
+    }
+
+    private boolean validarPesquisaComplexa() {
+        CampoPesquisaConta campo = obterCampoPesquisaSelecionado();
+        String termo = pesquisaField.getText();
+        if (termo == null || termo.isBlank() || !campo.isNumerico()) {
+            return true;
+        }
+
+        if (termo.trim().chars().allMatch(Character::isDigit)) {
+            return true;
+        }
+
+        tableModel.atualizarContas(List.of());
+        atualizarResumo(List.of());
+        mensagemLabel.setForeground(UiStyles.ERROR);
+        mensagemLabel.setText("Para pesquisar por " + campo.getDescricao() + ", informe apenas numeros.");
+        atualizarEstadoConteudo();
+        return false;
     }
 
     private TipoConta obterTipoSelecionado() {
@@ -677,9 +718,7 @@ public class ContaPanel extends JPanel implements ContaView {
         JPopupMenu popupMenu = new JPopupMenu();
 
         JButton editarButton = criarMenuButton("Editar", () -> {
-            if (editarAction != null) {
-                editarAction.accept(conta);
-            }
+            executarEdicao(conta);
         });
 
         String textoStatus = conta.isAtivo() ? "Inativar" : "Ativar";
@@ -699,6 +738,12 @@ public class ContaPanel extends JPanel implements ContaView {
         popupMenu.add(statusButton);
         popupMenu.add(excluirButton);
         popupMenu.show(component, x, y);
+    }
+
+    private void executarEdicao(Conta conta) {
+        if (editarAction != null) {
+            editarAction.accept(conta);
+        }
     }
 
     private JButton criarMenuButton(String texto, Runnable acao) {

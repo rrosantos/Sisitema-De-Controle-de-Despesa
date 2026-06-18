@@ -9,6 +9,9 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.Locale;
 
+/**
+ * Reune formatacoes e verificacoes visuais especificas de cofrinhos.
+ */
 public final class CofrinhoViewSupport {
 
     private static final Locale LOCALE_PT_BR = Locale.of("pt", "BR");

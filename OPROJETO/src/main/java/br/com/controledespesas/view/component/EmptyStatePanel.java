@@ -10,6 +10,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 
+/**
+ * Componente visual reutilizavel para telas sem registros exibidos.
+ */
 public class EmptyStatePanel extends JPanel {
 
     private final JLabel tituloLabel;

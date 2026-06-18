@@ -6,6 +6,9 @@ import br.com.controledespesas.model.TipoTransacao;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Transporta dados imutaveis usados no fluxo de TransacaoRecenteDashboard.
+ */
 public record TransacaoRecenteDashboard(
         Long id,
         LocalDate data,

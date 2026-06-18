@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Realiza a persistencia JDBC e consultas relacionadas a Categoria.
+ */
 public class CategoriaDAO {
 
     public Long inserir(Categoria categoria) throws SQLException {

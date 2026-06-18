@@ -6,6 +6,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
+/**
+ * Executa tarefas em segundo plano usando SwingWorker e devolve os callbacks para a interface.
+ */
 public class SwingWorkerAsyncTaskExecutor implements AsyncTaskExecutor {
 
     @Override

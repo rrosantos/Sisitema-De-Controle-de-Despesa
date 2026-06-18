@@ -11,6 +11,9 @@ import javax.swing.JProgressBar;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 
+/**
+ * Define responsabilidades de CategoriaExpenseBar dentro do sistema.
+ */
 class CategoriaExpenseBar extends JPanel {
 
     private final JLabel nomeLabel;

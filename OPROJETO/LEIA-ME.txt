@@ -1,0 +1,131 @@
+SISTEMA DE CONTROLE DE DESPESAS PESSOAIS
+
+Aplicacao desktop feita em Java Swing, com Maven, JDBC e MySQL.
+
+
+1. REQUISITOS
+
+Ubuntu:
+- Java JDK 21
+- Maven 3.8 ou superior
+- MySQL Server 8 ou superior
+
+Windows:
+- Java JDK 21
+- Maven 3.8 ou superior
+- MySQL Server 8 ou superior
+- PowerShell, Prompt de Comando ou terminal da IDE
+
+
+2. CONFIGURAR O BANCO DE DADOS
+
+O projeto usa MySQL. O script do banco fica em:
+
+../BANCO_DADOS/schema.sql
+
+No Ubuntu, dentro da pasta OPROJETO, execute:
+
+sudo mysql < ../BANCO_DADOS/schema.sql
+
+No Windows, dentro da pasta OPROJETO, execute no PowerShell ou Prompt:
+
+mysql -u root -p < ..\BANCO_DADOS\schema.sql
+
+Depois informe a senha do usuario root do MySQL, se for solicitada.
+
+
+3. CONFIGURAR O ARQUIVO .env
+
+Dentro da pasta OPROJETO, copie o arquivo de exemplo:
+
+Ubuntu:
+cp .env.example .env
+
+Windows:
+copy .env.example .env
+
+Abra o arquivo .env e confira as configuracoes:
+
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=controle_despesas
+DB_USER=controle_app
+DB_PASSWORD=senha123
+
+Se voce alterar usuario, senha ou nome do banco no MySQL, atualize esses dados no .env.
+
+
+4. INSTALAR AS DEPENDENCIAS
+
+As dependencias sao baixadas pelo Maven automaticamente.
+
+Dentro da pasta OPROJETO, execute:
+
+mvn clean compile
+
+Se o comando terminar sem erro, o projeto compilou corretamente.
+
+
+5. ABRIR A APLICACAO EM MODO DESENVOLVIMENTO
+
+Dentro da pasta OPROJETO, execute:
+
+mvn exec:java
+
+A janela de login sera aberta. Cadastre um usuario na tela de cadastro e depois faca login.
+
+
+6. GERAR E ABRIR O ARQUIVO .JAR
+
+Para gerar o jar executavel, execute:
+
+mvn clean package
+
+O arquivo sera gerado em:
+
+target/sistema-controle-despesas.jar
+
+Para abrir pelo terminal, execute:
+
+Ubuntu:
+java -jar target/sistema-controle-despesas.jar
+
+Windows:
+java -jar target\sistema-controle-despesas.jar
+
+Importante: execute o jar a partir da pasta OPROJETO ou garanta que o arquivo .env esteja na pasta onde o comando sera executado.
+
+
+7. POSSIVEIS PROBLEMAS
+
+Erro de conexao com o banco:
+- Verifique se o MySQL esta aberto/ativo.
+- Verifique se o arquivo .env existe na pasta OPROJETO.
+- Verifique se DB_USER e DB_PASSWORD estao corretos.
+- Verifique se o banco controle_despesas foi criado pelo schema.sql.
+
+Erro dizendo que mvn ou java nao foi encontrado:
+- Instale o JDK 21.
+- Instale o Maven.
+- Feche e abra o terminal novamente para atualizar o PATH.
+
+Ubuntu com erro de Snap/libpthread:
+- O problema costuma ser do ambiente do terminal, nao da aplicacao.
+- Tente abrir por um terminal normal do sistema.
+- Se necessario, teste:
+
+env -u LD_LIBRARY_PATH -u LD_PRELOAD mvn exec:java
+
+
+8. ESTRUTURA EM CAMADAS
+
+O projeto esta separado em pacotes:
+
+- app: inicializacao da aplicacao.
+- view: telas Swing, formularios e componentes visuais.
+- controller: regras de fluxo, validacoes e chamadas entre tela e banco.
+- dao: acesso ao banco de dados com JDBC.
+- model: entidades do sistema.
+- dto: objetos auxiliares de transferencia de dados.
+- config, database, security, session e util: configuracao, conexao, senha, sessao e funcoes reutilizaveis.
+

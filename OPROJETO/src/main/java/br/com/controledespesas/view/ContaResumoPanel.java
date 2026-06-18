@@ -11,6 +11,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de ContaResumo.
+ */
 class ContaResumoPanel extends JPanel {
 
     ContaResumoPanel(ResumoContaDashboard resumo) {

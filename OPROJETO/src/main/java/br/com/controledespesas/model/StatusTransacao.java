@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os status validos de Transacao usados pelo sistema.
+ */
 public enum StatusTransacao {
     PENDENTE("pendente"),
     PAGO("pago"),

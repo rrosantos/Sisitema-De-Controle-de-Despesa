@@ -1,5 +1,8 @@
 package br.com.controledespesas.view;
 
+/**
+ * Enumera opcoes fixas usadas no fluxo de OrdenacaoConta.
+ */
 public enum OrdenacaoConta {
     NOME_CRESCENTE("Nome: A-Z"),
     NOME_DECRESCENTE("Nome: Z-A"),

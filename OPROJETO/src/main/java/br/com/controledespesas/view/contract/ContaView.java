@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Conta.
+ */
 public interface ContaView {
 
     void exibirContas(List<Conta> contas);

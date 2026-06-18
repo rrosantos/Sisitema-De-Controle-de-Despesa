@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Realiza a persistencia JDBC e consultas relacionadas a Cofrinho.
+ */
 public class CofrinhoDAO {
 
     public Long inserir(Cofrinho cofrinho) throws SQLException {

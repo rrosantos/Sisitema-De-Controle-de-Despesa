@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os status validos de Cofrinho usados pelo sistema.
+ */
 public enum StatusCofrinho {
     EM_ANDAMENTO("em_andamento"),
     CONCLUIDO("concluido"),

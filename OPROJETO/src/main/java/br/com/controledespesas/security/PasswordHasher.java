@@ -3,6 +3,9 @@ package br.com.controledespesas.security;
 import br.com.controledespesas.exception.ValidacaoException;
 import org.mindrot.jbcrypt.BCrypt;
 
+/**
+ * Encapsula geracao e verificacao de hashes de senha.
+ */
 public class PasswordHasher {
 
     private static final int BCRYPT_COST = 10;

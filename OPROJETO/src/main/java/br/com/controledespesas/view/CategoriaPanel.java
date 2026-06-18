@@ -46,6 +46,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Categoria.
+ */
 public class CategoriaPanel extends JPanel implements CategoriaView {
 
     private static final String CARD_LISTA = "lista";

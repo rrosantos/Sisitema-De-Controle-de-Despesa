@@ -6,6 +6,9 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapta dados de TransacaoRecenteDashboard para exibicao em tabela Swing.
+ */
 class TransacaoRecenteDashboardTableModel extends AbstractTableModel {
 
     private static final String[] COLUNAS = {

@@ -17,6 +17,9 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Login.
+ */
 public class LoginPanel extends JPanel implements LoginView {
 
     private final JTextField emailField;
@@ -41,6 +44,7 @@ public class LoginPanel extends JPanel implements LoginView {
 
         UiStyles.styleTextComponent(emailField);
         UiStyles.styleTextComponent(senhaField);
+        InputFormatters.instalarFiltroSemEspacos(emailField);
         UiStyles.stylePrimaryButton(entrarButton);
         UiStyles.styleLinkButton(criarContaButton);
 

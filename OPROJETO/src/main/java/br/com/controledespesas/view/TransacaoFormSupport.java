@@ -10,6 +10,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Filtra opcoes validas de status, categorias e contas no formulario de transacao.
+ */
 final class TransacaoFormSupport {
 
     private TransacaoFormSupport() {

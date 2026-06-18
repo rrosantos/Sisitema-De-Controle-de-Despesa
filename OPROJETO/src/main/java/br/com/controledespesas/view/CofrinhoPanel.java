@@ -44,6 +44,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Cofrinho.
+ */
 public class CofrinhoPanel extends JPanel implements CofrinhoView {
 
     private static final String CARD_LISTA = "lista";

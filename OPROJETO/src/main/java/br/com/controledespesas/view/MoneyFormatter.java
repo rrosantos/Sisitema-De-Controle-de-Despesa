@@ -8,12 +8,16 @@ import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+/**
+ * Converte e formata valores monetarios no padrao brasileiro da interface.
+ */
 public class MoneyFormatter {
 
     private static final Locale LOCALE_PT_BR = Locale.of("pt", "BR");
     private static final Pattern PADRAO_MONETARIO_BR = Pattern.compile(
             "^(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:,\\d{1,2})?$"
     );
+    private static final String PREFIXO_MOEDA = "R$";
     private static final String MENSAGEM_INVALIDA = "Informe um valor monetario valido.";
     private static final String MENSAGEM_NEGATIVA = "O saldo inicial nao pode ser negativo.";
 
@@ -22,7 +26,12 @@ public class MoneyFormatter {
             throw new ValidacaoException(MENSAGEM_INVALIDA);
         }
 
-        String normalizado = texto.trim();
+        String normalizado = texto.trim()
+                .replace("\u00A0", "")
+                .replace(" ", "");
+        if (normalizado.toUpperCase(Locale.ROOT).startsWith(PREFIXO_MOEDA)) {
+            normalizado = normalizado.substring(PREFIXO_MOEDA.length());
+        }
         if (normalizado.isEmpty()) {
             throw new ValidacaoException(MENSAGEM_INVALIDA);
         }
@@ -55,8 +64,7 @@ public class MoneyFormatter {
             return ViewFormatters.formatOptionalText(null);
         }
 
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(LOCALE_PT_BR);
-        return currencyFormat.format(valor);
+        return PREFIXO_MOEDA + formatarNumero(valor);
     }
 
     public String formatForInput(BigDecimal valor) {
@@ -64,6 +72,10 @@ public class MoneyFormatter {
             return "";
         }
 
+        return PREFIXO_MOEDA + formatarNumero(valor);
+    }
+
+    private String formatarNumero(BigDecimal valor) {
         NumberFormat numberFormat = NumberFormat.getNumberInstance(LOCALE_PT_BR);
         numberFormat.setGroupingUsed(true);
         numberFormat.setMinimumFractionDigits(2);

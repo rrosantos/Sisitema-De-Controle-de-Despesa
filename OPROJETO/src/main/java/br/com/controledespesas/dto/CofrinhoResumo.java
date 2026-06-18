@@ -5,6 +5,9 @@ import br.com.controledespesas.model.Cofrinho;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+/**
+ * Transporta valores consolidados para exibicao de Cofrinho.
+ */
 public record CofrinhoResumo(
         Cofrinho cofrinho,
         BigDecimal valorAtual,

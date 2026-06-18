@@ -24,9 +24,13 @@ import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Exibe e controla o dialogo Swing de CofrinhoForm.
+ */
 public class CofrinhoFormDialog extends JDialog {
 
     private final JTextField nomeField;
@@ -49,7 +53,8 @@ public class CofrinhoFormDialog extends JDialog {
         nomeField = new JTextField();
         descricaoArea = new JTextArea(5, 20);
         valorMetaField = new JTextField();
-        dataLimiteField = new JTextField();
+        InputFormatters.instalarFormatoMonetario(valorMetaField, this.moneyFormatter);
+        dataLimiteField = InputFormatters.criarCampoData();
         mensagemLabel = UiStyles.createMessageLabel();
         cancelarButton = new JButton("Cancelar");
         salvarButton = new JButton("Salvar");
@@ -160,6 +165,7 @@ public class CofrinhoFormDialog extends JDialog {
 
     private void preencherDados(Cofrinho cofrinho) {
         if (cofrinho == null) {
+            valorMetaField.setText(moneyFormatter.formatForInput(BigDecimal.ZERO));
             return;
         }
 
@@ -177,9 +183,10 @@ public class CofrinhoFormDialog extends JDialog {
                     nomeField.getText(),
                     descricaoArea.getText(),
                     valorMetaField.getText(),
-                    dataLimiteField.getText(),
+                    InputFormatters.obterTextoData(dataLimiteField),
                     moneyFormatter
             );
+            valorMetaField.setText(moneyFormatter.formatForInput(dados.valorMeta()));
             setProcessando(true);
             aoSalvar.accept(dados);
         } catch (RuntimeException exception) {

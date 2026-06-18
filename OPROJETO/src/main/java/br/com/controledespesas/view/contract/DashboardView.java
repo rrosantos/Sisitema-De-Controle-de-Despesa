@@ -4,6 +4,9 @@ import br.com.controledespesas.dto.DashboardResumo;
 
 import java.time.LocalDate;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Dashboard.
+ */
 public interface DashboardView {
 
     void exibirResumo(DashboardResumo resumo);

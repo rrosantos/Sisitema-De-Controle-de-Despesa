@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Transacao.
+ */
 public interface TransacaoView {
 
     void exibirTransacoes(List<Transacao> transacoes);

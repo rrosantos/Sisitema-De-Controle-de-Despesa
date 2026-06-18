@@ -17,6 +17,9 @@ import java.awt.Font;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Define responsabilidades de MainFrame dentro do sistema.
+ */
 public class MainFrame extends JFrame implements MainView {
 
     private static final String PAINEL_INICIO = "inicio";
@@ -24,6 +27,7 @@ public class MainFrame extends JFrame implements MainView {
     private static final String PAINEL_CONTAS = "contas";
     private static final String PAINEL_TRANSACOES = "transacoes";
     private static final String PAINEL_COFRINHOS = "cofrinhos";
+    private static final String PAINEL_USUARIOS = "usuarios";
 
     private final JLabel nomeUsuarioLabel;
     private final JLabel emailUsuarioLabel;
@@ -34,6 +38,7 @@ public class MainFrame extends JFrame implements MainView {
     private final JButton contasButton;
     private final JButton categoriasButton;
     private final JButton cofrinhosButton;
+    private final JButton usuariosButton;
     private final JPanel conteudoCentralPanel;
     private final CardLayout conteudoCentralLayout;
     private final Map<String, JButton> menuButtons;
@@ -55,6 +60,7 @@ public class MainFrame extends JFrame implements MainView {
         contasButton = criarBotaoMenu("Contas");
         categoriasButton = criarBotaoMenu("Categorias");
         cofrinhosButton = criarBotaoMenu("Cofrinhos");
+        usuariosButton = criarBotaoMenu("Usuarios");
         conteudoCentralLayout = new CardLayout();
         conteudoCentralPanel = new JPanel(conteudoCentralLayout);
         menuButtons = new LinkedHashMap<>();
@@ -135,6 +141,11 @@ public class MainFrame extends JFrame implements MainView {
     @Override
     public void definirAcaoCofrinhos(Runnable acao) {
         configurarAcao(cofrinhosButton, acao);
+    }
+
+    @Override
+    public void definirAcaoUsuarios(Runnable acao) {
+        configurarAcao(usuariosButton, acao);
     }
 
     @Override
@@ -232,6 +243,8 @@ public class MainFrame extends JFrame implements MainView {
         sidebar.add(categoriasButton);
         sidebar.add(Box.createVerticalStrut(12));
         sidebar.add(cofrinhosButton);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(usuariosButton);
         sidebar.add(Box.createVerticalGlue());
         return sidebar;
     }
@@ -284,6 +297,7 @@ public class MainFrame extends JFrame implements MainView {
         titulosSecao.put(PAINEL_CONTAS, "Contas");
         titulosSecao.put(PAINEL_TRANSACOES, "Transacoes");
         titulosSecao.put(PAINEL_COFRINHOS, "Cofrinhos");
+        titulosSecao.put(PAINEL_USUARIOS, "Usuarios");
     }
 
     private void registrarMenuButtons() {
@@ -292,6 +306,7 @@ public class MainFrame extends JFrame implements MainView {
         menuButtons.put(PAINEL_CONTAS, contasButton);
         menuButtons.put(PAINEL_CATEGORIAS, categoriasButton);
         menuButtons.put(PAINEL_COFRINHOS, cofrinhosButton);
+        menuButtons.put(PAINEL_USUARIOS, usuariosButton);
     }
 
     private void atualizarTituloSecao(String identificador) {

@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Realiza a persistencia JDBC e consultas relacionadas a Dashboard.
+ */
 public class DashboardDAO {
 
     private final ConnectionProvider connectionProvider;

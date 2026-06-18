@@ -2,6 +2,9 @@ package br.com.controledespesas.dto;
 
 import br.com.controledespesas.model.StatusCofrinho;
 
+/**
+ * Transporta criterios de filtro para consultas de Cofrinho.
+ */
 public record CofrinhoFiltro(
         String pesquisa,
         StatusCofrinho status,

@@ -6,11 +6,12 @@ import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Conta;
 import br.com.controledespesas.model.TipoConta;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.util.SqlExceptionUtils;
+import br.com.controledespesas.util.ValidationUtils;
 import br.com.controledespesas.view.contract.ContaView;
 import br.com.controledespesas.view.contract.DadosContaForm;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,13 +21,14 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena regras, saldos e operacoes de contas do usuario autenticado.
+ */
 public class ContaController {
 
     private static final Logger LOGGER = Logger.getLogger(ContaController.class.getName());
     private static final int MAX_NOME = 100;
     private static final int MAX_INSTITUICAO = 150;
-    private static final int DUPLICATE_KEY_ERROR_CODE = 1062;
-    private static final int FOREIGN_KEY_RESTRICT_ERROR_CODE = 1451;
     private static final String MENSAGEM_DUPLICIDADE = "Ja existe uma conta com este nome.";
     private static final String MENSAGEM_ERRO_TECNICO =
             "Nao foi possivel acessar as contas. Tente novamente.";
@@ -255,11 +257,13 @@ public class ContaController {
 
     private Conta cadastrar(Long usuarioId, String nome, TipoConta tipo, String instituicao, BigDecimal saldoInicial)
             throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        String nomeNormalizado = normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
-        TipoConta tipoConta = requireValue(tipo, "Tipo da conta");
-        String instituicaoNormalizada = normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
-        BigDecimal saldoNormalizado = normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = ValidationUtils.normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
+        TipoConta tipoConta = ValidationUtils.requireValue(tipo, "Tipo da conta");
+        String instituicaoNormalizada =
+                ValidationUtils.normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
+        BigDecimal saldoNormalizado =
+                ValidationUtils.normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
 
         if (contaDAO.nomeExiste(idUsuario, nomeNormalizado)) {
             throw new RegraNegocioException(MENSAGEM_DUPLICIDADE);
@@ -277,7 +281,7 @@ public class ContaController {
             contaDAO.inserir(conta);
             return conta;
         } catch (SQLException exception) {
-            if (isDuplicateKey(exception)) {
+            if (SqlExceptionUtils.isDuplicateKey(exception)) {
                 throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
             }
             throw exception;
@@ -285,18 +289,20 @@ public class ContaController {
     }
 
     private List<Conta> listarPorUsuario(Long usuarioId) throws SQLException {
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         return contaDAO.listarPorUsuario(idUsuario);
     }
 
     private Conta atualizar(Long contaId, Long usuarioId, String nome, TipoConta tipo, String instituicao,
                            BigDecimal saldoInicial) throws SQLException {
-        Long idConta = requireId(contaId, "ID da conta");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
-        String nomeNormalizado = normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
-        TipoConta tipoConta = requireValue(tipo, "Tipo da conta");
-        String instituicaoNormalizada = normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
-        BigDecimal saldoNormalizado = normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = ValidationUtils.normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
+        TipoConta tipoConta = ValidationUtils.requireValue(tipo, "Tipo da conta");
+        String instituicaoNormalizada =
+                ValidationUtils.normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
+        BigDecimal saldoNormalizado =
+                ValidationUtils.normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
 
         Conta contaExistente = buscarContaExistente(idConta, idUsuario);
         if (contaDAO.nomeExisteParaOutraConta(idUsuario, nomeNormalizado, idConta)) {
@@ -319,7 +325,7 @@ public class ContaController {
             contaDAO.atualizar(contaExistente);
             return contaExistente;
         } catch (SQLException exception) {
-            if (isDuplicateKey(exception)) {
+            if (SqlExceptionUtils.isDuplicateKey(exception)) {
                 throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
             }
             throw exception;
@@ -327,8 +333,8 @@ public class ContaController {
     }
 
     private void alterarStatus(Long contaId, Long usuarioId, boolean ativo) throws SQLException {
-        Long idConta = requireId(contaId, "ID da conta");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         Conta contaExistente = buscarContaExistente(idConta, idUsuario);
         if (contaExistente.isAtivo() == ativo) {
             return;
@@ -338,14 +344,14 @@ public class ContaController {
     }
 
     private void excluir(Long contaId, Long usuarioId) throws SQLException {
-        Long idConta = requireId(contaId, "ID da conta");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         buscarContaExistente(idConta, idUsuario);
 
         try {
             contaDAO.excluir(idConta, idUsuario);
         } catch (SQLException exception) {
-            if (isForeignKeyRestriction(exception)) {
+            if (SqlExceptionUtils.isForeignKeyRestriction(exception)) {
                 throw new RegraNegocioException(
                         "A conta nao pode ser excluida porque possui transacoes vinculadas.",
                         exception
@@ -356,8 +362,8 @@ public class ContaController {
     }
 
     private BigDecimal consultarSaldoAtual(Long contaId, Long usuarioId) throws SQLException {
-        Long idConta = requireId(contaId, "ID da conta");
-        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Long idConta = ValidationUtils.requireId(contaId, "ID da conta");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
         return contaDAO.calcularSaldoAtual(idConta, idUsuario)
                 .orElseThrow(() -> new RegraNegocioException("Conta nao encontrada."));
     }
@@ -365,83 +371,6 @@ public class ContaController {
     private Conta buscarContaExistente(Long contaId, Long usuarioId) throws SQLException {
         return contaDAO.buscarPorId(contaId, usuarioId)
                 .orElseThrow(() -> new RegraNegocioException("Conta nao encontrada."));
-    }
-
-    private Long requireId(Long valor, String nomeCampo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-        if (valor <= 0) {
-            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
-        }
-        return valor;
-    }
-
-    private <T> T requireValue(T valor, String nomeCampo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-        return valor;
-    }
-
-    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
-        if (valor == null) {
-            return null;
-        }
-
-        String normalizado = valor.trim();
-        if (normalizado.isEmpty()) {
-            return null;
-        }
-
-        if (normalizado.length() > tamanhoMaximo) {
-            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
-        }
-
-        return normalizado;
-    }
-
-    private BigDecimal normalizeMonetaryValue(BigDecimal valor, String nomeCampo, boolean permitirZero) {
-        if (valor == null) {
-            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
-        }
-
-        BigDecimal normalizado = valor.setScale(2, RoundingMode.HALF_UP);
-        int comparacao = normalizado.compareTo(BigDecimal.ZERO);
-        if (permitirZero) {
-            if (comparacao < 0) {
-                throw new ValidacaoException(nomeCampo + " nao pode ser negativo.");
-            }
-        } else if (comparacao <= 0) {
-            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
-        }
-
-        return normalizado;
-    }
-
-    private boolean isDuplicateKey(SQLException exception) {
-        return exception != null && exception.getErrorCode() == DUPLICATE_KEY_ERROR_CODE;
-    }
-
-    private boolean isForeignKeyRestriction(SQLException exception) {
-        return exception != null && exception.getErrorCode() == FOREIGN_KEY_RESTRICT_ERROR_CODE;
     }
 
     private record ContaResultado(List<Conta> contas, Map<Long, BigDecimal> saldos, String mensagemSucesso) {

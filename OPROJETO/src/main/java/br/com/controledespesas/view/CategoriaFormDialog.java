@@ -27,6 +27,9 @@ import java.awt.event.WindowEvent;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Exibe e controla o dialogo Swing de CategoriaForm.
+ */
 public class CategoriaFormDialog extends JDialog {
 
     private final JTextField nomeField;

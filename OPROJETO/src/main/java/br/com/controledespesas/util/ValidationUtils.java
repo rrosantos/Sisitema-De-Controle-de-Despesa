@@ -7,6 +7,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Locale;
 
+/**
+ * Centraliza validacoes e normalizacoes reutilizadas pelos controllers.
+ */
 public final class ValidationUtils {
 
     private ValidationUtils() {

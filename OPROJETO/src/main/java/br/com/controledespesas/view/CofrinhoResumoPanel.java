@@ -14,6 +14,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.time.LocalDate;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de CofrinhoResumo.
+ */
 class CofrinhoResumoPanel extends JPanel {
 
     CofrinhoResumoPanel(ResumoCofrinhoDashboard resumo, LocalDate hoje) {

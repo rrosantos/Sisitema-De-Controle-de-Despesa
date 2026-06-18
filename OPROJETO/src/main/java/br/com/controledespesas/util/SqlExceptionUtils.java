@@ -3,6 +3,9 @@ package br.com.controledespesas.util;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+/**
+ * Centraliza utilitarios para rollback, autocommit e reconhecimento de erros SQL.
+ */
 public final class SqlExceptionUtils {
 
     private static final int DUPLICATE_KEY_ERROR_CODE = 1062;

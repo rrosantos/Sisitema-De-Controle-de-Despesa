@@ -10,6 +10,9 @@ import javax.swing.UIManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Ponto de entrada que inicializa o contexto da aplicacao e abre o fluxo principal.
+ */
 public final class Main {
 
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());

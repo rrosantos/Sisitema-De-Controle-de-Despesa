@@ -9,6 +9,9 @@ import br.com.controledespesas.view.MainFrame;
 
 import java.util.Objects;
 
+/**
+ * Coordena a alternancia entre autenticacao e tela principal da aplicacao.
+ */
 public class ApplicationController {
 
     private final ApplicationContext applicationContext;
@@ -66,6 +69,8 @@ public class ApplicationController {
                 applicationContext.getConnectionProvider(),
                 applicationContext.getCofrinhoDAO(),
                 applicationContext.getMovimentacaoCofrinhoDAO(),
+                applicationContext.getUsuarioDAO(),
+                applicationContext.getPasswordHasher(),
                 applicationContext.getAsyncTaskExecutor(),
                 mainFrame,
                 this

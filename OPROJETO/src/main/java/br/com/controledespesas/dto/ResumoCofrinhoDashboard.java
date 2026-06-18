@@ -5,6 +5,9 @@ import br.com.controledespesas.model.StatusCofrinho;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Transporta dados resumidos de CofrinhoDashboard para o dashboard.
+ */
 public record ResumoCofrinhoDashboard(
         Long cofrinhoId,
         String nome,

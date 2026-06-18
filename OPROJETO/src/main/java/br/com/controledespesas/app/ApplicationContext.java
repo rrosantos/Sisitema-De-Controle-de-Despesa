@@ -14,6 +14,9 @@ import br.com.controledespesas.database.DatabaseConnection;
 import br.com.controledespesas.security.PasswordHasher;
 import br.com.controledespesas.session.SessaoUsuario;
 
+/**
+ * Centraliza a criacao e o reaproveitamento das dependencias da aplicacao.
+ */
 public class ApplicationContext {
 
     private final ConnectionProvider connectionProvider;

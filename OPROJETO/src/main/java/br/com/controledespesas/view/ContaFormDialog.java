@@ -26,6 +26,9 @@ import java.util.function.Consumer;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+/**
+ * Exibe e controla o dialogo Swing de ContaForm.
+ */
 public class ContaFormDialog extends JDialog {
 
     private final JTextField nomeField;
@@ -49,6 +52,7 @@ public class ContaFormDialog extends JDialog {
         tipoComboBox = new JComboBox<>(TipoConta.values());
         instituicaoField = new JTextField();
         saldoInicialField = new JTextField();
+        InputFormatters.instalarFormatoMonetario(saldoInicialField, this.moneyFormatter);
         mensagemLabel = UiStyles.createMessageLabel();
         cancelarButton = new JButton("Cancelar");
         salvarButton = new JButton("Salvar");
@@ -180,6 +184,7 @@ public class ContaFormDialog extends JDialog {
 
         try {
             BigDecimal saldoInicial = moneyFormatter.parse(saldoTexto);
+            saldoInicialField.setText(moneyFormatter.formatForInput(saldoInicial));
             setProcessando(true);
             aoSalvar.accept(new DadosContaForm(nome, tipo, instituicao, saldoInicial));
         } catch (ValidacaoException exception) {
@@ -191,7 +196,7 @@ public class ContaFormDialog extends JDialog {
     private void preencherDados(DadosContaForm dadosIniciais) {
         if (dadosIniciais == null) {
             tipoComboBox.setSelectedItem(TipoConta.CARTEIRA);
-            saldoInicialField.setText("0,00");
+            saldoInicialField.setText(moneyFormatter.formatForInput(BigDecimal.ZERO));
             return;
         }
 

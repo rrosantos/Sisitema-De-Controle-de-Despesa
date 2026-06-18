@@ -17,6 +17,9 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
 
+/**
+ * Componente visual que resume dados de Cofrinho em formato de card.
+ */
 class CofrinhoCard extends JPanel {
 
     private final JButton depositarButton;

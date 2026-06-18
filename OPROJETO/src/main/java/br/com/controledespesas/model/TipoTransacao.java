@@ -1,5 +1,8 @@
 package br.com.controledespesas.model;
 
+/**
+ * Enumera os tipos validos de Transacao usados pelo sistema.
+ */
 public enum TipoTransacao {
     RECEITA("receita"),
     DESPESA("despesa");

@@ -5,6 +5,9 @@ import br.com.controledespesas.model.Categoria;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Categoria.
+ */
 public interface CategoriaView {
 
     void exibirCategorias(List<Categoria> categorias);

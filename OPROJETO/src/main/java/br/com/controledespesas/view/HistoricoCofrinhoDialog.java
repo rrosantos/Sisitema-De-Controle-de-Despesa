@@ -26,6 +26,9 @@ import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Exibe e controla o dialogo Swing de HistoricoCofrinho.
+ */
 public class HistoricoCofrinhoDialog extends JDialog {
 
     private static final String CARD_TABELA = "tabela";

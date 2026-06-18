@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Adapta dados de Conta para exibicao em tabela Swing.
+ */
 class ContaTableModel extends AbstractTableModel {
 
     private static final String[] COLUNAS = {

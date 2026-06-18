@@ -5,6 +5,9 @@ import br.com.controledespesas.model.TipoTransacao;
 
 import java.time.LocalDate;
 
+/**
+ * Transporta criterios de filtro para consultas de Transacao.
+ */
 public record TransacaoFiltro(
         LocalDate dataInicial,
         LocalDate dataFinal,

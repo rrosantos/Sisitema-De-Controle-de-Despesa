@@ -7,9 +7,12 @@ import br.com.controledespesas.dao.ContaDAO;
 import br.com.controledespesas.dao.DashboardDAO;
 import br.com.controledespesas.dao.MovimentacaoCofrinhoDAO;
 import br.com.controledespesas.dao.TransacaoDAO;
+import br.com.controledespesas.dao.UsuarioDAO;
 import br.com.controledespesas.database.ConnectionProvider;
 import br.com.controledespesas.model.Usuario;
+import br.com.controledespesas.security.PasswordHasher;
 import br.com.controledespesas.session.SessaoUsuario;
+import br.com.controledespesas.view.CadastroUsuarioPanel;
 import br.com.controledespesas.view.CofrinhoPanel;
 import br.com.controledespesas.view.CategoriaPanel;
 import br.com.controledespesas.view.ContaPanel;
@@ -22,6 +25,9 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Coordena a navegacao da tela principal e a integracao entre os modulos.
+ */
 public class MainController {
 
     private static final Logger LOGGER = Logger.getLogger(MainController.class.getName());
@@ -30,6 +36,7 @@ public class MainController {
     static final String PAINEL_CATEGORIAS = "categorias";
     static final String PAINEL_CONTAS = "contas";
     static final String PAINEL_COFRINHOS = "cofrinhos";
+    static final String PAINEL_USUARIOS = "usuarios";
 
     private final SessaoUsuario sessaoUsuario;
     private final MainView mainView;
@@ -39,6 +46,7 @@ public class MainController {
     private final JPanel categoriaPanel;
     private final JPanel contaPanel;
     private final JPanel cofrinhoPanel;
+    private final JPanel usuarioPanel;
     private final DashboardController dashboardController;
     private final TransacaoController transacaoController;
     private final CategoriaController categoriaController;
@@ -51,6 +59,7 @@ public class MainController {
                           CategoriaDAO categoriaDAO, ContaDAO contaDAO, DashboardDAO dashboardDAO,
                           ConnectionProvider connectionProvider,
                           CofrinhoDAO cofrinhoDAO, MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO,
+                          UsuarioDAO usuarioDAO, PasswordHasher passwordHasher,
                           AsyncTaskExecutor asyncTaskExecutor, MainView mainView,
                           ApplicationController applicationController) {
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
@@ -64,6 +73,8 @@ public class MainController {
         Objects.requireNonNull(connectionProvider, "connectionProvider nao pode ser nulo.");
         Objects.requireNonNull(cofrinhoDAO, "cofrinhoDAO nao pode ser nulo.");
         Objects.requireNonNull(movimentacaoCofrinhoDAO, "movimentacaoCofrinhoDAO nao pode ser nulo.");
+        Objects.requireNonNull(usuarioDAO, "usuarioDAO nao pode ser nulo.");
+        Objects.requireNonNull(passwordHasher, "passwordHasher nao pode ser nulo.");
         Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
 
         this.inicioPanel = new InicioPanel();
@@ -108,6 +119,25 @@ public class MainController {
                 asyncTaskExecutor,
                 dashboardController
         );
+
+        CadastroUsuarioPanel usuarioPanelConcreto = new CadastroUsuarioPanel(
+                "Cadastro de usuarios",
+                "Inclua novos usuarios autorizados a acessar o sistema.",
+                "Voltar ao inicio"
+        );
+        this.usuarioPanel = usuarioPanelConcreto;
+        new CadastroUsuarioController(
+                usuarioDAO,
+                passwordHasher,
+                usuarioPanelConcreto,
+                applicationController,
+                asyncTaskExecutor,
+                usuario -> {
+                    usuarioPanelConcreto.limparCampos();
+                    usuarioPanelConcreto.mostrarSucesso("Usuario cadastrado com sucesso.");
+                },
+                this::mostrarInicio
+        );
     }
 
     MainController(SessaoUsuario sessaoUsuario, MainView mainView, ApplicationController applicationController,
@@ -125,6 +155,7 @@ public class MainController {
         this.categoriaPanel = Objects.requireNonNull(categoriaPanel, "categoriaPanel nao pode ser nulo.");
         this.contaPanel = Objects.requireNonNull(contaPanel, "contaPanel nao pode ser nulo.");
         this.cofrinhoPanel = Objects.requireNonNull(cofrinhoPanel, "cofrinhoPanel nao pode ser nulo.");
+        this.usuarioPanel = new JPanel();
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController nao pode ser nulo.");
         this.transacaoController = Objects.requireNonNull(
                 transacaoController,
@@ -198,6 +229,15 @@ public class MainController {
         cofrinhoController.carregar();
     }
 
+    public void mostrarUsuarios() {
+        if (exigirUsuarioAtual() == null) {
+            return;
+        }
+
+        mainView.mostrarPainel(PAINEL_USUARIOS);
+        mainView.definirMenuAtivo(PAINEL_USUARIOS);
+    }
+
     public void realizarLogout() {
         sessaoUsuario.encerrar();
         mainView.fechar();
@@ -217,11 +257,13 @@ public class MainController {
         mainView.adicionarPainel(PAINEL_CATEGORIAS, categoriaPanel);
         mainView.adicionarPainel(PAINEL_CONTAS, contaPanel);
         mainView.adicionarPainel(PAINEL_COFRINHOS, cofrinhoPanel);
+        mainView.adicionarPainel(PAINEL_USUARIOS, usuarioPanel);
         mainView.definirAcaoInicio(this::mostrarInicio);
         mainView.definirAcaoTransacoes(this::mostrarTransacoes);
         mainView.definirAcaoCategorias(this::mostrarCategorias);
         mainView.definirAcaoContas(this::mostrarContas);
         mainView.definirAcaoCofrinhos(this::mostrarCofrinhos);
+        mainView.definirAcaoUsuarios(this::mostrarUsuarios);
         mainView.definirAcaoSair(this::realizarLogout);
         dashboardController.definirAcaoAbrirTransacoes(this::mostrarTransacoes);
         dashboardController.definirAcaoAbrirContas(this::mostrarContas);

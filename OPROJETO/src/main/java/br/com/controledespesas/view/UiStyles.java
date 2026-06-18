@@ -29,6 +29,9 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Shape;
 
+/**
+ * Centraliza cores, fontes, bordas e estilos reutilizados pelos componentes Swing.
+ */
 public final class UiStyles {
 
     public static final Color BACKGROUND = new Color(0xF4F7FB);

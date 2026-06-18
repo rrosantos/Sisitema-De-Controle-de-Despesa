@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Realiza a persistencia JDBC e consultas relacionadas a Conta.
+ */
 public class ContaDAO {
 
     public Long inserir(Conta conta) throws SQLException {

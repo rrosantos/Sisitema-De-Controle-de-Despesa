@@ -36,6 +36,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Exibe e controla o dialogo Swing de TransacaoForm.
+ */
 public class TransacaoFormDialog extends JDialog {
 
     private static final String MENSAGEM_VALOR_ZERO = "O valor da transacao deve ser maior que zero.";
@@ -72,7 +75,8 @@ public class TransacaoFormDialog extends JDialog {
         tipoComboBox = new JComboBox<>();
         descricaoField = new JTextField();
         valorField = new JTextField();
-        dataField = new JTextField();
+        InputFormatters.instalarFormatoMonetario(valorField, this.moneyFormatter);
+        dataField = InputFormatters.criarCampoData();
         categoriaComboBox = new JComboBox<>();
         contaComboBox = new JComboBox<>();
         statusComboBox = new JComboBox<>();
@@ -213,7 +217,7 @@ public class TransacaoFormDialog extends JDialog {
     private void preencherDados(Transacao transacao) {
         if (transacao == null) {
             selecionarTipo(TipoTransacao.RECEITA);
-            valorField.setText("0,00");
+            valorField.setText(moneyFormatter.formatForInput(BigDecimal.ZERO));
             dataField.setText(DateFormatter.format(LocalDate.now()));
             atualizarDependenciasDoTipo();
             return;
@@ -322,7 +326,7 @@ public class TransacaoFormDialog extends JDialog {
         TipoTransacao tipo = obterTipoSelecionado();
         String descricao = descricaoField.getText() != null ? descricaoField.getText().trim() : "";
         String valorTexto = valorField.getText();
-        String dataTexto = dataField.getText() != null ? dataField.getText().trim() : "";
+        String dataTexto = InputFormatters.obterTextoData(dataField);
         SelectionOption<Categoria> categoriaOption = obterSelecionado(categoriaComboBox);
         SelectionOption<Conta> contaOption = obterSelecionado(contaComboBox);
         SelectionOption<StatusTransacao> statusOption = obterSelecionado(statusComboBox);
@@ -358,6 +362,7 @@ public class TransacaoFormDialog extends JDialog {
             if (valor.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new ValidacaoException(MENSAGEM_VALOR_ZERO);
             }
+            valorField.setText(moneyFormatter.formatForInput(valor));
 
             LocalDate dataTransacao = DateFormatter.parse(dataTexto);
             if (dataTransacao == null) {

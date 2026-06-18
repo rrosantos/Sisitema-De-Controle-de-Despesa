@@ -8,6 +8,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 
+/**
+ * Componente visual que apresenta estado de carregamento ao usuario.
+ */
 public class LoadingPanel extends JPanel {
 
     public LoadingPanel() {

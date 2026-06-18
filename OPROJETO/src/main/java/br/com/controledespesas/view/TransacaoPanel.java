@@ -56,6 +56,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Monta e atualiza a tela Swing do modulo de Transacao.
+ */
 public class TransacaoPanel extends JPanel implements TransacaoView {
 
     private static final String CARD_LISTA = "lista";

@@ -9,6 +9,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 
+/**
+ * Reune formatacoes e calculos auxiliares usados pela tela de inicio.
+ */
 final class DashboardViewSupport {
 
     private static final BigDecimal CEM = new BigDecimal("100");

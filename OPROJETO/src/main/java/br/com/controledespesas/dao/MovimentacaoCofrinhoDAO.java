@@ -21,8 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Ownership between usuario_id and cofrinho_id is enforced on insertion to avoid
- * linking a user's movement to another user's savings goal.
+ * Realiza a persistencia JDBC e consultas relacionadas a MovimentacaoCofrinho.
  */
 public class MovimentacaoCofrinhoDAO {
 

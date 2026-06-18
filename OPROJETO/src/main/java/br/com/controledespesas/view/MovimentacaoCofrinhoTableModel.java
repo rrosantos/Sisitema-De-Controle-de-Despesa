@@ -6,6 +6,9 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapta dados de MovimentacaoCofrinho para exibicao em tabela Swing.
+ */
 class MovimentacaoCofrinhoTableModel extends AbstractTableModel {
 
     private static final String[] COLUNAS = {"Data", "Tipo", "Valor", "Observacao"};

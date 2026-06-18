@@ -2,6 +2,9 @@ package br.com.controledespesas.view.contract;
 
 import javax.swing.JPanel;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Main.
+ */
 public interface MainView {
 
     void exibirUsuario(String nome, String email);
@@ -21,6 +24,8 @@ public interface MainView {
     void definirAcaoContas(Runnable acao);
 
     void definirAcaoCofrinhos(Runnable acao);
+
+    void definirAcaoUsuarios(Runnable acao);
 
     void definirAcaoSair(Runnable action);
 

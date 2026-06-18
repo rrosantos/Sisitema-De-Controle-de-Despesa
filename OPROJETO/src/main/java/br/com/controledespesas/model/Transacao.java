@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Representa a entidade Transacao manipulada pelo sistema.
+ */
 public class Transacao {
 
     private Long id;

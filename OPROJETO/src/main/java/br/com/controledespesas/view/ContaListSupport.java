@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Aplica ordenacao e filtros sobre listas de contas exibidas na interface.
+ */
 class ContaListSupport {
 
     private static final Locale LOCALE_PT_BR = Locale.forLanguageTag("pt-BR");

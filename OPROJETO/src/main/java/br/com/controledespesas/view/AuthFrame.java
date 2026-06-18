@@ -6,6 +6,9 @@ import javax.swing.SwingUtilities;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 
+/**
+ * Define responsabilidades de AuthFrame dentro do sistema.
+ */
 public class AuthFrame extends JFrame {
 
     private static final String CARD_LOGIN = "login";

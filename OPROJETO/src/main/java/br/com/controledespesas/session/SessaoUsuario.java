@@ -6,6 +6,9 @@ import br.com.controledespesas.model.Usuario;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Mantem o usuario autenticado atual e protege o acesso aos dados da sessao.
+ */
 public class SessaoUsuario {
 
     private Usuario usuarioAtual;

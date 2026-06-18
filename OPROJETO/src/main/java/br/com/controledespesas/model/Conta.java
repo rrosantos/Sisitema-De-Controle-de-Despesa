@@ -3,6 +3,9 @@ package br.com.controledespesas.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Representa a entidade Conta manipulada pelo sistema.
+ */
 public class Conta {
 
     private Long id;

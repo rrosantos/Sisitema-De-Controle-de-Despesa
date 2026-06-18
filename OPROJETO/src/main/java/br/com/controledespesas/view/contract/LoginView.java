@@ -1,5 +1,8 @@
 package br.com.controledespesas.view.contract;
 
+/**
+ * Define o contrato de exibicao e eventos da view de Login.
+ */
 public interface LoginView {
 
     String getEmail();
