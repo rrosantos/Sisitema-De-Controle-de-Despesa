@@ -1,14 +1,16 @@
 package br.com.controledespesas.controller;
 
+import br.com.controledespesas.dao.ContaDAO;
 import br.com.controledespesas.exception.RegraNegocioException;
 import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Conta;
-import br.com.controledespesas.service.ContaService;
+import br.com.controledespesas.model.TipoConta;
 import br.com.controledespesas.session.SessaoUsuario;
 import br.com.controledespesas.view.contract.ContaView;
 import br.com.controledespesas.view.contract.DadosContaForm;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +23,11 @@ import java.util.logging.Logger;
 public class ContaController {
 
     private static final Logger LOGGER = Logger.getLogger(ContaController.class.getName());
+    private static final int MAX_NOME = 100;
+    private static final int MAX_INSTITUICAO = 150;
+    private static final int DUPLICATE_KEY_ERROR_CODE = 1062;
+    private static final int FOREIGN_KEY_RESTRICT_ERROR_CODE = 1451;
+    private static final String MENSAGEM_DUPLICIDADE = "Ja existe uma conta com este nome.";
     private static final String MENSAGEM_ERRO_TECNICO =
             "Nao foi possivel acessar as contas. Tente novamente.";
     private static final String MENSAGEM_ERRO_SALVAR =
@@ -33,21 +40,21 @@ public class ContaController {
     private static final String MENSAGEM_ATIVACAO_SUCESSO = "Conta ativada com sucesso.";
     private static final String MENSAGEM_INATIVACAO_SUCESSO = "Conta inativada com sucesso.";
 
-    private final ContaService contaService;
+    private final ContaDAO contaDAO;
     private final SessaoUsuario sessaoUsuario;
     private final ContaView contaView;
     private final AsyncTaskExecutor asyncTaskExecutor;
     private final DashboardRefreshNotifier dashboardRefreshNotifier;
 
-    public ContaController(ContaService contaService, SessaoUsuario sessaoUsuario,
+    public ContaController(ContaDAO contaDAO, SessaoUsuario sessaoUsuario,
                            ContaView contaView, AsyncTaskExecutor asyncTaskExecutor) {
-        this(contaService, sessaoUsuario, contaView, asyncTaskExecutor, DashboardRefreshNotifier.NO_OP);
+        this(contaDAO, sessaoUsuario, contaView, asyncTaskExecutor, DashboardRefreshNotifier.NO_OP);
     }
 
-    public ContaController(ContaService contaService, SessaoUsuario sessaoUsuario,
+    public ContaController(ContaDAO contaDAO, SessaoUsuario sessaoUsuario,
                            ContaView contaView, AsyncTaskExecutor asyncTaskExecutor,
                            DashboardRefreshNotifier dashboardRefreshNotifier) {
-        this.contaService = Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
+        this.contaDAO = Objects.requireNonNull(contaDAO, "contaDAO nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.contaView = Objects.requireNonNull(contaView, "contaView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
@@ -141,13 +148,13 @@ public class ContaController {
 
     private ContaResultado cadastrarConta(DadosContaForm dados) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        contaService.cadastrar(usuarioId, dados.nome(), dados.tipo(), dados.instituicao(), dados.saldoInicial());
+        cadastrar(usuarioId, dados.nome(), dados.tipo(), dados.instituicao(), dados.saldoInicial());
         return carregarDadosUsuarioAtual(MENSAGEM_CADASTRO_SUCESSO);
     }
 
     private ContaResultado atualizarConta(Conta conta, DadosContaForm dados) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        contaService.atualizar(
+        atualizar(
                 conta.getId(),
                 usuarioId,
                 dados.nome(),
@@ -160,20 +167,20 @@ public class ContaController {
 
     private ContaResultado alterarStatusConta(Conta conta, boolean novoStatus) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        contaService.alterarStatus(conta.getId(), usuarioId, novoStatus);
+        alterarStatus(conta.getId(), usuarioId, novoStatus);
         String mensagem = novoStatus ? MENSAGEM_ATIVACAO_SUCESSO : MENSAGEM_INATIVACAO_SUCESSO;
         return carregarDadosUsuarioAtual(mensagem);
     }
 
     private ContaResultado excluirConta(Conta conta) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        contaService.excluir(conta.getId(), usuarioId);
+        excluir(conta.getId(), usuarioId);
         return carregarDadosUsuarioAtual(MENSAGEM_EXCLUSAO_SUCESSO);
     }
 
     private ContaResultado carregarDadosUsuarioAtual(String mensagemSucesso) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        List<Conta> contas = contaService.listarPorUsuario(usuarioId);
+        List<Conta> contas = listarPorUsuario(usuarioId);
         Map<Long, BigDecimal> saldos = new LinkedHashMap<>();
 
         for (Conta conta : contas) {
@@ -182,7 +189,7 @@ public class ContaController {
             }
 
             try {
-                saldos.put(conta.getId(), contaService.consultarSaldoAtual(conta.getId(), usuarioId));
+                saldos.put(conta.getId(), consultarSaldoAtual(conta.getId(), usuarioId));
             } catch (SQLException | RegraNegocioException exception) {
                 LOGGER.log(
                         Level.WARNING,
@@ -244,6 +251,197 @@ public class ContaController {
             return MENSAGEM_EXCLUSAO_BLOQUEADA;
         }
         return mensagemOriginal != null && !mensagemOriginal.isBlank() ? mensagemOriginal : MENSAGEM_ERRO_TECNICO;
+    }
+
+    private Conta cadastrar(Long usuarioId, String nome, TipoConta tipo, String instituicao, BigDecimal saldoInicial)
+            throws SQLException {
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
+        TipoConta tipoConta = requireValue(tipo, "Tipo da conta");
+        String instituicaoNormalizada = normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
+        BigDecimal saldoNormalizado = normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
+
+        if (contaDAO.nomeExiste(idUsuario, nomeNormalizado)) {
+            throw new RegraNegocioException(MENSAGEM_DUPLICIDADE);
+        }
+
+        Conta conta = new Conta();
+        conta.setUsuarioId(idUsuario);
+        conta.setNome(nomeNormalizado);
+        conta.setTipo(tipoConta);
+        conta.setInstituicao(instituicaoNormalizada);
+        conta.setSaldoInicial(saldoNormalizado);
+        conta.setAtivo(true);
+
+        try {
+            contaDAO.inserir(conta);
+            return conta;
+        } catch (SQLException exception) {
+            if (isDuplicateKey(exception)) {
+                throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
+            }
+            throw exception;
+        }
+    }
+
+    private List<Conta> listarPorUsuario(Long usuarioId) throws SQLException {
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        return contaDAO.listarPorUsuario(idUsuario);
+    }
+
+    private Conta atualizar(Long contaId, Long usuarioId, String nome, TipoConta tipo, String instituicao,
+                           BigDecimal saldoInicial) throws SQLException {
+        Long idConta = requireId(contaId, "ID da conta");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = normalizeRequiredText(nome, "Nome da conta", MAX_NOME);
+        TipoConta tipoConta = requireValue(tipo, "Tipo da conta");
+        String instituicaoNormalizada = normalizeOptionalText(instituicao, "Instituicao", MAX_INSTITUICAO);
+        BigDecimal saldoNormalizado = normalizeMonetaryValue(saldoInicial, "Saldo inicial", true);
+
+        Conta contaExistente = buscarContaExistente(idConta, idUsuario);
+        if (contaDAO.nomeExisteParaOutraConta(idUsuario, nomeNormalizado, idConta)) {
+            throw new RegraNegocioException(MENSAGEM_DUPLICIDADE);
+        }
+
+        if (Objects.equals(contaExistente.getNome(), nomeNormalizado)
+                && contaExistente.getTipo() == tipoConta
+                && Objects.equals(contaExistente.getInstituicao(), instituicaoNormalizada)
+                && Objects.equals(contaExistente.getSaldoInicial(), saldoNormalizado)) {
+            return contaExistente;
+        }
+
+        contaExistente.setNome(nomeNormalizado);
+        contaExistente.setTipo(tipoConta);
+        contaExistente.setInstituicao(instituicaoNormalizada);
+        contaExistente.setSaldoInicial(saldoNormalizado);
+
+        try {
+            contaDAO.atualizar(contaExistente);
+            return contaExistente;
+        } catch (SQLException exception) {
+            if (isDuplicateKey(exception)) {
+                throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
+            }
+            throw exception;
+        }
+    }
+
+    private void alterarStatus(Long contaId, Long usuarioId, boolean ativo) throws SQLException {
+        Long idConta = requireId(contaId, "ID da conta");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Conta contaExistente = buscarContaExistente(idConta, idUsuario);
+        if (contaExistente.isAtivo() == ativo) {
+            return;
+        }
+
+        contaDAO.atualizarStatus(idConta, idUsuario, ativo);
+    }
+
+    private void excluir(Long contaId, Long usuarioId) throws SQLException {
+        Long idConta = requireId(contaId, "ID da conta");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        buscarContaExistente(idConta, idUsuario);
+
+        try {
+            contaDAO.excluir(idConta, idUsuario);
+        } catch (SQLException exception) {
+            if (isForeignKeyRestriction(exception)) {
+                throw new RegraNegocioException(
+                        "A conta nao pode ser excluida porque possui transacoes vinculadas.",
+                        exception
+                );
+            }
+            throw exception;
+        }
+    }
+
+    private BigDecimal consultarSaldoAtual(Long contaId, Long usuarioId) throws SQLException {
+        Long idConta = requireId(contaId, "ID da conta");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        return contaDAO.calcularSaldoAtual(idConta, idUsuario)
+                .orElseThrow(() -> new RegraNegocioException("Conta nao encontrada."));
+    }
+
+    private Conta buscarContaExistente(Long contaId, Long usuarioId) throws SQLException {
+        return contaDAO.buscarPorId(contaId, usuarioId)
+                .orElseThrow(() -> new RegraNegocioException("Conta nao encontrada."));
+    }
+
+    private Long requireId(Long valor, String nomeCampo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+        if (valor <= 0) {
+            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
+        }
+        return valor;
+    }
+
+    private <T> T requireValue(T valor, String nomeCampo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+        return valor;
+    }
+
+    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+
+        String normalizado = valor.trim();
+        if (normalizado.isEmpty()) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+
+        if (normalizado.length() > tamanhoMaximo) {
+            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
+        }
+
+        return normalizado;
+    }
+
+    private String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
+        if (valor == null) {
+            return null;
+        }
+
+        String normalizado = valor.trim();
+        if (normalizado.isEmpty()) {
+            return null;
+        }
+
+        if (normalizado.length() > tamanhoMaximo) {
+            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
+        }
+
+        return normalizado;
+    }
+
+    private BigDecimal normalizeMonetaryValue(BigDecimal valor, String nomeCampo, boolean permitirZero) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+
+        BigDecimal normalizado = valor.setScale(2, RoundingMode.HALF_UP);
+        int comparacao = normalizado.compareTo(BigDecimal.ZERO);
+        if (permitirZero) {
+            if (comparacao < 0) {
+                throw new ValidacaoException(nomeCampo + " nao pode ser negativo.");
+            }
+        } else if (comparacao <= 0) {
+            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
+        }
+
+        return normalizado;
+    }
+
+    private boolean isDuplicateKey(SQLException exception) {
+        return exception != null && exception.getErrorCode() == DUPLICATE_KEY_ERROR_CODE;
+    }
+
+    private boolean isForeignKeyRestriction(SQLException exception) {
+        return exception != null && exception.getErrorCode() == FOREIGN_KEY_RESTRICT_ERROR_CODE;
     }
 
     private record ContaResultado(List<Conta> contas, Map<Long, BigDecimal> saldos, String mensagemSucesso) {

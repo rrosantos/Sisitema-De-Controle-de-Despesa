@@ -1,4 +1,4 @@
-package br.com.controledespesas.service;
+package br.com.controledespesas.util;
 
 import br.com.controledespesas.exception.ValidacaoException;
 
@@ -7,12 +7,12 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Locale;
 
-final class ServiceValidationUtils {
+public final class ValidationUtils {
 
-    private ServiceValidationUtils() {
+    private ValidationUtils() {
     }
 
-    static Long requireId(Long valor, String nomeCampo) {
+    public static Long requireId(Long valor, String nomeCampo) {
         if (valor == null) {
             throw new ValidacaoException(nomeCampo + " e obrigatorio.");
         }
@@ -22,14 +22,14 @@ final class ServiceValidationUtils {
         return valor;
     }
 
-    static <T> T requireValue(T valor, String nomeCampo) {
+    public static <T> T requireValue(T valor, String nomeCampo) {
         if (valor == null) {
             throw new ValidacaoException(nomeCampo + " e obrigatorio.");
         }
         return valor;
     }
 
-    static String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
+    public static String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
         if (valor == null) {
             throw new ValidacaoException(nomeCampo + " e obrigatorio.");
         }
@@ -46,7 +46,7 @@ final class ServiceValidationUtils {
         return normalizado;
     }
 
-    static String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
+    public static String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
         if (valor == null) {
             return null;
         }
@@ -63,7 +63,7 @@ final class ServiceValidationUtils {
         return normalizado;
     }
 
-    static String normalizeEmail(String email) {
+    public static String normalizeEmail(String email) {
         String normalizado = normalizeRequiredText(email, "E-mail", 255).toLowerCase(Locale.ROOT);
         if (!emailValido(normalizado)) {
             throw new ValidacaoException("E-mail invalido.");
@@ -71,7 +71,7 @@ final class ServiceValidationUtils {
         return normalizado;
     }
 
-    static BigDecimal normalizeMonetaryValue(BigDecimal valor, String nomeCampo, boolean permitirZero) {
+    public static BigDecimal normalizeMonetaryValue(BigDecimal valor, String nomeCampo, boolean permitirZero) {
         if (valor == null) {
             throw new ValidacaoException(nomeCampo + " e obrigatorio.");
         }
@@ -89,20 +89,20 @@ final class ServiceValidationUtils {
         return normalizado;
     }
 
-    static LocalDate requireDate(LocalDate data, String nomeCampo) {
+    public static LocalDate requireDate(LocalDate data, String nomeCampo) {
         if (data == null) {
             throw new ValidacaoException(nomeCampo + " e obrigatoria.");
         }
         return data;
     }
 
-    static void validateDateRange(LocalDate dataInicial, LocalDate dataFinal) {
+    public static void validateDateRange(LocalDate dataInicial, LocalDate dataFinal) {
         if (dataInicial != null && dataFinal != null && dataInicial.isAfter(dataFinal)) {
             throw new ValidacaoException("A data inicial nao pode ser posterior a data final.");
         }
     }
 
-    static void validatePassword(String senha) {
+    public static void validatePassword(String senha) {
         if (senha == null || senha.isBlank()) {
             throw new ValidacaoException("A senha e obrigatoria.");
         }
@@ -114,7 +114,7 @@ final class ServiceValidationUtils {
         }
     }
 
-    static void validatePasswordConfirmation(String senha, String confirmacao) {
+    public static void validatePasswordConfirmation(String senha, String confirmacao) {
         if (confirmacao == null || confirmacao.isBlank()) {
             throw new ValidacaoException("A confirmacao de senha e obrigatoria.");
         }

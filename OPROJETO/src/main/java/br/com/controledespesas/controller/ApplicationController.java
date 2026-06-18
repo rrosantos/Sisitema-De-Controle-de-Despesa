@@ -58,14 +58,14 @@ public class ApplicationController {
 
         mainFrame = new MainFrame(nome, email);
         MainController mainController = new MainController(
-                applicationContext.getAutenticacaoService(),
                 applicationContext.getSessaoUsuario(),
-                applicationContext.getTransacaoService(),
-                applicationContext.getCategoriaService(),
-                applicationContext.getContaService(),
-                applicationContext.getCofrinhoService(),
-                applicationContext.getMovimentacaoCofrinhoService(),
-                applicationContext.getDashboardService(),
+                applicationContext.getTransacaoDAO(),
+                applicationContext.getCategoriaDAO(),
+                applicationContext.getContaDAO(),
+                applicationContext.getDashboardDAO(),
+                applicationContext.getConnectionProvider(),
+                applicationContext.getCofrinhoDAO(),
+                applicationContext.getMovimentacaoCofrinhoDAO(),
                 applicationContext.getAsyncTaskExecutor(),
                 mainFrame,
                 this
@@ -89,13 +89,16 @@ public class ApplicationController {
         authFrame = new AuthFrame(loginPanel, cadastroUsuarioPanel);
 
         new LoginController(
-                applicationContext.getAutenticacaoService(),
+                applicationContext.getUsuarioDAO(),
+                applicationContext.getPasswordHasher(),
+                applicationContext.getSessaoUsuario(),
                 loginPanel,
                 this,
                 applicationContext.getAsyncTaskExecutor()
         );
         new CadastroUsuarioController(
-                applicationContext.getUsuarioService(),
+                applicationContext.getUsuarioDAO(),
+                applicationContext.getPasswordHasher(),
                 cadastroUsuarioPanel,
                 this,
                 applicationContext.getAsyncTaskExecutor()

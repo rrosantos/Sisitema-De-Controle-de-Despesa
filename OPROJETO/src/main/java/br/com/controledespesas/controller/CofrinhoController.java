@@ -1,5 +1,8 @@
 package br.com.controledespesas.controller;
 
+import br.com.controledespesas.dao.CofrinhoDAO;
+import br.com.controledespesas.dao.MovimentacaoCofrinhoDAO;
+import br.com.controledespesas.database.ConnectionProvider;
 import br.com.controledespesas.dto.CofrinhoFiltro;
 import br.com.controledespesas.dto.CofrinhoResumo;
 import br.com.controledespesas.dto.PrazoCofrinhoFiltro;
@@ -8,16 +11,18 @@ import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Cofrinho;
 import br.com.controledespesas.model.MovimentacaoCofrinho;
 import br.com.controledespesas.model.StatusCofrinho;
-import br.com.controledespesas.service.CofrinhoService;
-import br.com.controledespesas.service.MovimentacaoCofrinhoService;
+import br.com.controledespesas.model.TipoMovimentacaoCofrinho;
 import br.com.controledespesas.session.SessaoUsuario;
 import br.com.controledespesas.util.CofrinhoProgressCalculator;
+import br.com.controledespesas.util.SqlExceptionUtils;
+import br.com.controledespesas.util.ValidationUtils;
 import br.com.controledespesas.view.CofrinhoViewSupport;
 import br.com.controledespesas.view.contract.CofrinhoView;
 import br.com.controledespesas.view.contract.DadosCofrinhoForm;
 import br.com.controledespesas.view.contract.DadosMovimentacaoCofrinhoForm;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -54,9 +59,13 @@ public class CofrinhoController {
     private static final String MENSAGEM_DEPOSITO_SUCESSO = "Deposito registrado com sucesso.";
     private static final String MENSAGEM_RETIRADA_SUCESSO = "Retirada registrada com sucesso.";
     private static final String MENSAGEM_EXCLUSAO_MOVIMENTACAO_SUCESSO = "Movimentacao excluida com sucesso.";
+    private static final int MAX_NOME = 150;
+    private static final int MAX_DESCRICAO = 65535;
+    private static final int MAX_OBSERVACAO = 65535;
 
-    private final CofrinhoService cofrinhoService;
-    private final MovimentacaoCofrinhoService movimentacaoCofrinhoService;
+    private final CofrinhoDAO cofrinhoDAO;
+    private final MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO;
+    private final ConnectionProvider connectionProvider;
     private final SessaoUsuario sessaoUsuario;
     private final CofrinhoView cofrinhoView;
     private final AsyncTaskExecutor asyncTaskExecutor;
@@ -66,12 +75,13 @@ public class CofrinhoController {
     private CofrinhoFiltro filtroAtual = new CofrinhoFiltro();
     private Long historicoCofrinhoAbertoId;
 
-    public CofrinhoController(CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
-                              SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
+    public CofrinhoController(CofrinhoDAO cofrinhoDAO, MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO,
+                              ConnectionProvider connectionProvider, SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
                               AsyncTaskExecutor asyncTaskExecutor) {
         this(
-                cofrinhoService,
-                movimentacaoCofrinhoService,
+                cofrinhoDAO,
+                movimentacaoCofrinhoDAO,
+                connectionProvider,
                 sessaoUsuario,
                 cofrinhoView,
                 asyncTaskExecutor,
@@ -79,15 +89,14 @@ public class CofrinhoController {
         );
     }
 
-    public CofrinhoController(CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
-                              SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
+    public CofrinhoController(CofrinhoDAO cofrinhoDAO, MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO,
+                              ConnectionProvider connectionProvider, SessaoUsuario sessaoUsuario, CofrinhoView cofrinhoView,
                               AsyncTaskExecutor asyncTaskExecutor,
                               DashboardRefreshNotifier dashboardRefreshNotifier) {
-        this.cofrinhoService = Objects.requireNonNull(cofrinhoService, "cofrinhoService nao pode ser nulo.");
-        this.movimentacaoCofrinhoService = Objects.requireNonNull(
-                movimentacaoCofrinhoService,
-                "movimentacaoCofrinhoService nao pode ser nulo."
-        );
+        this.cofrinhoDAO = Objects.requireNonNull(cofrinhoDAO, "cofrinhoDAO nao pode ser nulo.");
+        this.movimentacaoCofrinhoDAO =
+                Objects.requireNonNull(movimentacaoCofrinhoDAO, "movimentacaoCofrinhoDAO nao pode ser nulo.");
+        this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.cofrinhoView = Objects.requireNonNull(cofrinhoView, "cofrinhoView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
@@ -281,7 +290,7 @@ public class CofrinhoController {
     }
 
     private ResultadoCarregamentoCofrinhos cadastrarCofrinho(DadosCofrinhoForm dados) throws SQLException {
-        cofrinhoService.cadastrar(
+        cadastrar(
                 sessaoUsuario.exigirUsuarioId(),
                 dados.nome(),
                 dados.descricao(),
@@ -293,7 +302,7 @@ public class CofrinhoController {
 
     private ResultadoCarregamentoCofrinhos atualizarCofrinho(CofrinhoResumo resumo, DadosCofrinhoForm dados)
             throws SQLException {
-        cofrinhoService.atualizar(
+        atualizar(
                 resumo.cofrinho().getId(),
                 sessaoUsuario.exigirUsuarioId(),
                 dados.nome(),
@@ -305,7 +314,7 @@ public class CofrinhoController {
     }
 
     private ResultadoCarregamentoCofrinhos cancelarCofrinho(CofrinhoResumo resumo) throws SQLException {
-        cofrinhoService.alterarStatus(
+        alterarStatus(
                 resumo.cofrinho().getId(),
                 sessaoUsuario.exigirUsuarioId(),
                 StatusCofrinho.CANCELADO
@@ -314,18 +323,18 @@ public class CofrinhoController {
     }
 
     private ResultadoCarregamentoCofrinhos reativarCofrinho(CofrinhoResumo resumo) throws SQLException {
-        cofrinhoService.reativar(resumo.cofrinho().getId(), sessaoUsuario.exigirUsuarioId());
+        reativar(resumo.cofrinho().getId(), sessaoUsuario.exigirUsuarioId());
         return montarResultado(MENSAGEM_REATIVACAO_SUCESSO, historicoCofrinhoAbertoId);
     }
 
     private ResultadoCarregamentoCofrinhos excluirCofrinho(CofrinhoResumo resumo) throws SQLException {
-        cofrinhoService.excluir(resumo.cofrinho().getId(), sessaoUsuario.exigirUsuarioId());
+        excluirCofrinho(resumo.cofrinho().getId(), sessaoUsuario.exigirUsuarioId());
         return montarResultado(MENSAGEM_EXCLUSAO_SUCESSO, historicoCofrinhoAbertoId);
     }
 
     private ResultadoCarregamentoCofrinhos depositarNoCofrinho(CofrinhoResumo resumo,
                                                                DadosMovimentacaoCofrinhoForm dados) throws SQLException {
-        movimentacaoCofrinhoService.depositar(
+        depositar(
                 resumo.cofrinho().getId(),
                 sessaoUsuario.exigirUsuarioId(),
                 dados.valor(),
@@ -337,7 +346,7 @@ public class CofrinhoController {
 
     private ResultadoCarregamentoCofrinhos retirarDoCofrinho(CofrinhoResumo resumo,
                                                              DadosMovimentacaoCofrinhoForm dados) throws SQLException {
-        movimentacaoCofrinhoService.retirar(
+        retirar(
                 resumo.cofrinho().getId(),
                 sessaoUsuario.exigirUsuarioId(),
                 dados.valor(),
@@ -350,7 +359,7 @@ public class CofrinhoController {
     private ResultadoCarregamentoCofrinhos excluirMovimentacaoInterna(CofrinhoResumo resumo,
                                                                       MovimentacaoCofrinho movimentacao)
             throws SQLException {
-        movimentacaoCofrinhoService.excluir(movimentacao.getId(), sessaoUsuario.exigirUsuarioId());
+        excluirMovimentacao(movimentacao.getId(), sessaoUsuario.exigirUsuarioId());
         return montarResultado(MENSAGEM_EXCLUSAO_MOVIMENTACAO_SUCESSO, resumo.cofrinho().getId());
     }
 
@@ -358,10 +367,10 @@ public class CofrinhoController {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
         CofrinhoResumo resumoAtual = obterResumoPorId(resumo.cofrinho().getId());
         if (resumoAtual == null) {
-            resumoAtual = montarResumo(cofrinhoService.buscarPorId(resumo.cofrinho().getId(), usuarioId), usuarioId);
+            resumoAtual = montarResumo(buscarPorId(resumo.cofrinho().getId(), usuarioId), usuarioId);
         }
         List<MovimentacaoCofrinho> movimentacoes =
-                movimentacaoCofrinhoService.listarPorCofrinho(resumoAtual.cofrinho().getId(), usuarioId);
+                listarMovimentacoesPorCofrinho(resumoAtual.cofrinho().getId(), usuarioId);
         return new ResultadoHistorico(resumoAtual, movimentacoes);
     }
 
@@ -372,14 +381,14 @@ public class CofrinhoController {
         List<MovimentacaoCofrinho> historicoMovimentacoes = null;
 
         if (historicoCofrinhoId != null && contemResumo(resumos, historicoCofrinhoId)) {
-            historicoMovimentacoes = movimentacaoCofrinhoService.listarPorCofrinho(historicoCofrinhoId, usuarioId);
+            historicoMovimentacoes = listarMovimentacoesPorCofrinho(historicoCofrinhoId, usuarioId);
         }
 
         return new ResultadoCarregamentoCofrinhos(resumos, mensagemSucesso, historicoCofrinhoId, historicoMovimentacoes);
     }
 
     private List<CofrinhoResumo> carregarResumos(Long usuarioId) throws SQLException {
-        List<Cofrinho> cofrinhos = cofrinhoService.listarPorUsuario(usuarioId);
+        List<Cofrinho> cofrinhos = listarPorUsuario(usuarioId);
         List<CofrinhoResumo> resumos = new ArrayList<>();
 
         for (Cofrinho cofrinho : cofrinhos) {
@@ -390,9 +399,332 @@ public class CofrinhoController {
     }
 
     private CofrinhoResumo montarResumo(Cofrinho cofrinho, Long usuarioId) throws SQLException {
-        BigDecimal valorAtual = cofrinhoService.consultarValorAtual(cofrinho.getId(), usuarioId);
+        BigDecimal valorAtual = consultarValorAtual(cofrinho.getId(), usuarioId);
         BigDecimal percentual = CofrinhoProgressCalculator.calculateProgressPercentage(valorAtual, cofrinho.getValorMeta());
         return new CofrinhoResumo(cofrinho, valorAtual, percentual);
+    }
+
+    private Cofrinho cadastrar(Long usuarioId, String nome, String descricao, BigDecimal valorMeta, LocalDate dataLimite)
+            throws SQLException {
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = ValidationUtils.normalizeRequiredText(nome, "Nome do cofrinho", MAX_NOME);
+        String descricaoNormalizada =
+                ValidationUtils.normalizeOptionalText(descricao, "Descricao do cofrinho", MAX_DESCRICAO);
+        BigDecimal valorMetaNormalizado =
+                ValidationUtils.normalizeMonetaryValue(valorMeta, "Valor da meta", false);
+
+        Cofrinho cofrinho = new Cofrinho();
+        cofrinho.setUsuarioId(idUsuario);
+        cofrinho.setNome(nomeNormalizado);
+        cofrinho.setDescricao(descricaoNormalizada);
+        cofrinho.setValorMeta(valorMetaNormalizado);
+        cofrinho.setDataLimite(dataLimite);
+        cofrinho.setStatus(StatusCofrinho.EM_ANDAMENTO);
+
+        cofrinhoDAO.inserir(cofrinho);
+        return cofrinho;
+    }
+
+    private Cofrinho buscarPorId(Long cofrinhoId, Long usuarioId) throws SQLException {
+        return buscarCofrinhoExistente(cofrinhoId, usuarioId);
+    }
+
+    private List<Cofrinho> listarPorUsuario(Long usuarioId) throws SQLException {
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        return cofrinhoDAO.listarPorUsuario(idUsuario);
+    }
+
+    private Cofrinho atualizar(Long cofrinhoId, Long usuarioId, String nome, String descricao, BigDecimal valorMeta,
+                               LocalDate dataLimite) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = ValidationUtils.normalizeRequiredText(nome, "Nome do cofrinho", MAX_NOME);
+        String descricaoNormalizada =
+                ValidationUtils.normalizeOptionalText(descricao, "Descricao do cofrinho", MAX_DESCRICAO);
+        BigDecimal valorMetaNormalizado =
+                ValidationUtils.normalizeMonetaryValue(valorMeta, "Valor da meta", false);
+
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            Throwable falha = null;
+
+            try {
+                connection.setAutoCommit(false);
+
+                Cofrinho cofrinhoExistente = cofrinhoDAO.buscarPorIdParaAtualizacao(connection, idCofrinho, idUsuario)
+                        .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+
+                if (Objects.equals(cofrinhoExistente.getNome(), nomeNormalizado)
+                        && Objects.equals(cofrinhoExistente.getDescricao(), descricaoNormalizada)
+                        && Objects.equals(cofrinhoExistente.getValorMeta(), valorMetaNormalizado)
+                        && Objects.equals(cofrinhoExistente.getDataLimite(), dataLimite)) {
+                    connection.rollback();
+                    return cofrinhoExistente;
+                }
+
+                cofrinhoExistente.setNome(nomeNormalizado);
+                cofrinhoExistente.setDescricao(descricaoNormalizada);
+                cofrinhoExistente.setValorMeta(valorMetaNormalizado);
+                cofrinhoExistente.setDataLimite(dataLimite);
+                cofrinhoExistente.setStatus(definirStatusAposAtualizacao(connection, cofrinhoExistente));
+
+                cofrinhoDAO.atualizar(connection, cofrinhoExistente);
+                connection.commit();
+                return cofrinhoExistente;
+            } catch (SQLException | RuntimeException exception) {
+                falha = exception;
+                SqlExceptionUtils.rollback(connection, exception);
+                throw exception;
+            } finally {
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
+            }
+        }
+    }
+
+    private void alterarStatus(Long cofrinhoId, Long usuarioId, StatusCofrinho status) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        StatusCofrinho statusCofrinho = ValidationUtils.requireValue(status, "Status do cofrinho");
+        Cofrinho cofrinhoExistente = buscarCofrinhoExistente(idCofrinho, idUsuario);
+        if (cofrinhoExistente.getStatus() == statusCofrinho) {
+            return;
+        }
+
+        cofrinhoDAO.atualizarStatus(idCofrinho, idUsuario, statusCofrinho);
+    }
+
+    private void reativar(Long cofrinhoId, Long usuarioId) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            Throwable falha = null;
+
+            try {
+                connection.setAutoCommit(false);
+
+                Cofrinho cofrinho = cofrinhoDAO.buscarPorIdParaAtualizacao(connection, idCofrinho, idUsuario)
+                        .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+
+                if (cofrinho.getStatus() != StatusCofrinho.CANCELADO) {
+                    connection.rollback();
+                    return;
+                }
+
+                StatusCofrinho novoStatus = recalcularStatus(connection, cofrinho);
+                cofrinhoDAO.atualizarStatus(connection, idCofrinho, idUsuario, novoStatus);
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                falha = exception;
+                SqlExceptionUtils.rollback(connection, exception);
+                throw exception;
+            } finally {
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
+            }
+        }
+    }
+
+    private void excluirCofrinho(Long cofrinhoId, Long usuarioId) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        buscarCofrinhoExistente(idCofrinho, idUsuario);
+        cofrinhoDAO.excluir(idCofrinho, idUsuario);
+    }
+
+    private BigDecimal consultarValorAtual(Long cofrinhoId, Long usuarioId) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        return movimentacaoCofrinhoDAO.calcularValorAtual(idCofrinho, idUsuario)
+                .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+    }
+
+    private MovimentacaoCofrinho depositar(Long cofrinhoId, Long usuarioId, BigDecimal valor,
+                                           LocalDate dataMovimentacao, String observacao) throws SQLException {
+        return registrarMovimentacao(
+                cofrinhoId,
+                usuarioId,
+                TipoMovimentacaoCofrinho.DEPOSITO,
+                valor,
+                dataMovimentacao,
+                observacao
+        );
+    }
+
+    private MovimentacaoCofrinho retirar(Long cofrinhoId, Long usuarioId, BigDecimal valor,
+                                         LocalDate dataMovimentacao, String observacao) throws SQLException {
+        return registrarMovimentacao(
+                cofrinhoId,
+                usuarioId,
+                TipoMovimentacaoCofrinho.RETIRADA,
+                valor,
+                dataMovimentacao,
+                observacao
+        );
+    }
+
+    private List<MovimentacaoCofrinho> listarMovimentacoesPorCofrinho(Long cofrinhoId, Long usuarioId)
+            throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        buscarCofrinhoExistente(idCofrinho, idUsuario);
+        return movimentacaoCofrinhoDAO.listarPorCofrinho(idCofrinho, idUsuario);
+    }
+
+    private void excluirMovimentacao(Long movimentacaoId, Long usuarioId) throws SQLException {
+        Long idMovimentacao = ValidationUtils.requireId(movimentacaoId, "ID da movimentacao");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            Throwable falha = null;
+
+            try {
+                connection.setAutoCommit(false);
+
+                MovimentacaoCofrinho movimentacao =
+                        movimentacaoCofrinhoDAO.buscarPorId(connection, idMovimentacao, idUsuario)
+                                .orElseThrow(() -> new RegraNegocioException("Movimentacao nao encontrada."));
+
+                Cofrinho cofrinho =
+                        cofrinhoDAO.buscarPorIdParaAtualizacao(connection, movimentacao.getCofrinhoId(), idUsuario)
+                                .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+
+                BigDecimal valorAtual =
+                        movimentacaoCofrinhoDAO.calcularValorAtual(connection, cofrinho.getId(), idUsuario)
+                                .orElse(BigDecimal.ZERO);
+
+                BigDecimal valorResultante = calcularValorResultanteExclusao(movimentacao, valorAtual);
+                if (valorResultante.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new RegraNegocioException(
+                            "A movimentacao nao pode ser excluida porque deixaria o saldo do cofrinho negativo."
+                    );
+                }
+
+                movimentacaoCofrinhoDAO.excluir(connection, idMovimentacao, idUsuario);
+                atualizarStatusAutomatico(connection, cofrinho, valorResultante);
+
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                falha = exception;
+                SqlExceptionUtils.rollback(connection, exception);
+                throw exception;
+            } finally {
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
+            }
+        }
+    }
+
+    private MovimentacaoCofrinho registrarMovimentacao(Long cofrinhoId, Long usuarioId,
+                                                       TipoMovimentacaoCofrinho tipo,
+                                                       BigDecimal valor, LocalDate dataMovimentacao,
+                                                       String observacao) throws SQLException {
+        Long idCofrinho = ValidationUtils.requireId(cofrinhoId, "ID do cofrinho");
+        Long idUsuario = ValidationUtils.requireId(usuarioId, "ID do usuario");
+        TipoMovimentacaoCofrinho tipoMovimentacao =
+                ValidationUtils.requireValue(tipo, "Tipo da movimentacao");
+        BigDecimal valorNormalizado =
+                ValidationUtils.normalizeMonetaryValue(valor, "Valor da movimentacao", false);
+        LocalDate data = ValidationUtils.requireDate(dataMovimentacao, "Data da movimentacao");
+        String observacaoNormalizada =
+                ValidationUtils.normalizeOptionalText(observacao, "Observacao", MAX_OBSERVACAO);
+
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            Throwable falha = null;
+
+            try {
+                connection.setAutoCommit(false);
+
+                Cofrinho cofrinho = cofrinhoDAO.buscarPorIdParaAtualizacao(connection, idCofrinho, idUsuario)
+                        .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+
+                if (cofrinho.getStatus() == StatusCofrinho.CANCELADO) {
+                    throw new RegraNegocioException(
+                            "O cofrinho informado esta cancelado e nao pode receber movimentacoes."
+                    );
+                }
+
+                BigDecimal valorAtual = movimentacaoCofrinhoDAO.calcularValorAtual(connection, idCofrinho, idUsuario)
+                        .orElse(BigDecimal.ZERO);
+
+                if (tipoMovimentacao == TipoMovimentacaoCofrinho.RETIRADA
+                        && valorNormalizado.compareTo(valorAtual) > 0) {
+                    throw new RegraNegocioException(
+                            "O valor da retirada nao pode ser maior que o valor disponivel no cofrinho."
+                    );
+                }
+
+                MovimentacaoCofrinho movimentacao = new MovimentacaoCofrinho();
+                movimentacao.setCofrinhoId(idCofrinho);
+                movimentacao.setUsuarioId(idUsuario);
+                movimentacao.setTipo(tipoMovimentacao);
+                movimentacao.setValor(valorNormalizado);
+                movimentacao.setDataMovimentacao(data);
+                movimentacao.setObservacao(observacaoNormalizada);
+
+                movimentacaoCofrinhoDAO.inserir(connection, movimentacao);
+
+                BigDecimal novoValor = tipoMovimentacao == TipoMovimentacaoCofrinho.DEPOSITO
+                        ? valorAtual.add(valorNormalizado)
+                        : valorAtual.subtract(valorNormalizado);
+
+                atualizarStatusAutomatico(connection, cofrinho, novoValor);
+                connection.commit();
+                return movimentacao;
+            } catch (SQLException | RuntimeException exception) {
+                falha = exception;
+                SqlExceptionUtils.rollback(connection, exception);
+                throw exception;
+            } finally {
+                SqlExceptionUtils.restoreAutoCommit(connection, originalAutoCommit, falha);
+            }
+        }
+    }
+
+    private StatusCofrinho definirStatusAposAtualizacao(Connection connection, Cofrinho cofrinho) throws SQLException {
+        if (cofrinho.getStatus() == StatusCofrinho.CANCELADO) {
+            return StatusCofrinho.CANCELADO;
+        }
+        return recalcularStatus(connection, cofrinho);
+    }
+
+    private StatusCofrinho recalcularStatus(Connection connection, Cofrinho cofrinho) throws SQLException {
+        BigDecimal valorAtual = movimentacaoCofrinhoDAO.calcularValorAtual(
+                connection,
+                cofrinho.getId(),
+                cofrinho.getUsuarioId()
+        ).orElse(BigDecimal.ZERO);
+        return valorAtual.compareTo(cofrinho.getValorMeta()) >= 0
+                ? StatusCofrinho.CONCLUIDO
+                : StatusCofrinho.EM_ANDAMENTO;
+    }
+
+    private Cofrinho buscarCofrinhoExistente(Long cofrinhoId, Long usuarioId) throws SQLException {
+        return cofrinhoDAO.buscarPorId(cofrinhoId, usuarioId)
+                .orElseThrow(() -> new RegraNegocioException("Cofrinho nao encontrado."));
+    }
+
+    private BigDecimal calcularValorResultanteExclusao(MovimentacaoCofrinho movimentacao, BigDecimal valorAtual) {
+        return movimentacao.getTipo() == TipoMovimentacaoCofrinho.DEPOSITO
+                ? valorAtual.subtract(movimentacao.getValor())
+                : valorAtual.add(movimentacao.getValor());
+    }
+
+    private void atualizarStatusAutomatico(Connection connection, Cofrinho cofrinho, BigDecimal valorAtual)
+            throws SQLException {
+        if (cofrinho.getStatus() == StatusCofrinho.CANCELADO) {
+            return;
+        }
+
+        StatusCofrinho novoStatus = valorAtual.compareTo(cofrinho.getValorMeta()) >= 0
+                ? StatusCofrinho.CONCLUIDO
+                : StatusCofrinho.EM_ANDAMENTO;
+
+        if (cofrinho.getStatus() != novoStatus) {
+            cofrinhoDAO.atualizarStatus(connection, cofrinho.getId(), cofrinho.getUsuarioId(), novoStatus);
+            cofrinho.setStatus(novoStatus);
+        }
     }
 
     private void aplicarResultado(ResultadoCarregamentoCofrinhos resultado) {

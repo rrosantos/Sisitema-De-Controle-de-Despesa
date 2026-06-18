@@ -1,9 +1,10 @@
 package br.com.controledespesas.controller;
 
+import br.com.controledespesas.dao.CategoriaDAO;
 import br.com.controledespesas.exception.RegraNegocioException;
 import br.com.controledespesas.exception.ValidacaoException;
 import br.com.controledespesas.model.Categoria;
-import br.com.controledespesas.service.CategoriaService;
+import br.com.controledespesas.model.TipoCategoria;
 import br.com.controledespesas.session.SessaoUsuario;
 import br.com.controledespesas.view.contract.CategoriaView;
 import br.com.controledespesas.view.contract.DadosCategoriaForm;
@@ -18,6 +19,11 @@ import java.util.logging.Logger;
 public class CategoriaController {
 
     private static final Logger LOGGER = Logger.getLogger(CategoriaController.class.getName());
+    private static final int MAX_NOME = 100;
+    private static final int MAX_DESCRICAO = 255;
+    private static final int DUPLICATE_KEY_ERROR_CODE = 1062;
+    private static final int FOREIGN_KEY_RESTRICT_ERROR_CODE = 1451;
+    private static final String MENSAGEM_DUPLICIDADE = "Ja existe uma categoria com este nome e tipo.";
     private static final String MENSAGEM_ERRO_TECNICO =
             "Nao foi possivel acessar as categorias. Tente novamente.";
     private static final String MENSAGEM_ERRO_SALVAR =
@@ -30,14 +36,14 @@ public class CategoriaController {
     private static final String MENSAGEM_ATIVACAO_SUCESSO = "Categoria ativada com sucesso.";
     private static final String MENSAGEM_INATIVACAO_SUCESSO = "Categoria inativada com sucesso.";
 
-    private final CategoriaService categoriaService;
+    private final CategoriaDAO categoriaDAO;
     private final SessaoUsuario sessaoUsuario;
     private final CategoriaView categoriaView;
     private final AsyncTaskExecutor asyncTaskExecutor;
 
-    public CategoriaController(CategoriaService categoriaService, SessaoUsuario sessaoUsuario,
+    public CategoriaController(CategoriaDAO categoriaDAO, SessaoUsuario sessaoUsuario,
                                CategoriaView categoriaView, AsyncTaskExecutor asyncTaskExecutor) {
-        this.categoriaService = Objects.requireNonNull(categoriaService, "categoriaService nao pode ser nulo.");
+        this.categoriaDAO = Objects.requireNonNull(categoriaDAO, "categoriaDAO nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.categoriaView = Objects.requireNonNull(categoriaView, "categoriaView nao pode ser nulo.");
         this.asyncTaskExecutor = Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
@@ -127,31 +133,31 @@ public class CategoriaController {
 
     private CategoriaResultado cadastrarCategoria(DadosCategoriaForm dados) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        categoriaService.cadastrar(usuarioId, dados.nome(), dados.tipo(), dados.descricao());
+        cadastrar(usuarioId, dados.nome(), dados.tipo(), dados.descricao());
         return new CategoriaResultado(listarCategoriasUsuarioAtual(), MENSAGEM_CADASTRO_SUCESSO);
     }
 
     private CategoriaResultado atualizarCategoria(Categoria categoria, DadosCategoriaForm dados) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        categoriaService.atualizar(categoria.getId(), usuarioId, dados.nome(), dados.tipo(), dados.descricao());
+        atualizar(categoria.getId(), usuarioId, dados.nome(), dados.tipo(), dados.descricao());
         return new CategoriaResultado(listarCategoriasUsuarioAtual(), MENSAGEM_EDICAO_SUCESSO);
     }
 
     private CategoriaResultado alterarStatusCategoria(Categoria categoria, boolean novoStatus) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        categoriaService.alterarStatus(categoria.getId(), usuarioId, novoStatus);
+        alterarStatus(categoria.getId(), usuarioId, novoStatus);
         String mensagem = novoStatus ? MENSAGEM_ATIVACAO_SUCESSO : MENSAGEM_INATIVACAO_SUCESSO;
         return new CategoriaResultado(listarCategoriasUsuarioAtual(), mensagem);
     }
 
     private CategoriaResultado excluirCategoria(Categoria categoria) throws SQLException {
         Long usuarioId = sessaoUsuario.exigirUsuarioId();
-        categoriaService.excluir(categoria.getId(), usuarioId);
+        excluir(categoria.getId(), usuarioId);
         return new CategoriaResultado(listarCategoriasUsuarioAtual(), MENSAGEM_EXCLUSAO_SUCESSO);
     }
 
     private List<Categoria> listarCategoriasUsuarioAtual() throws SQLException {
-        return categoriaService.listarPorUsuario(sessaoUsuario.exigirUsuarioId());
+        return listarPorUsuario(sessaoUsuario.exigirUsuarioId());
     }
 
     private void aplicarResultado(CategoriaResultado resultado) {
@@ -201,6 +207,166 @@ public class CategoriaController {
             return MENSAGEM_EXCLUSAO_BLOQUEADA;
         }
         return mensagemOriginal != null && !mensagemOriginal.isBlank() ? mensagemOriginal : MENSAGEM_ERRO_TECNICO;
+    }
+
+    private Categoria cadastrar(Long usuarioId, String nome, TipoCategoria tipo, String descricao) throws SQLException {
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = normalizeRequiredText(nome, "Nome da categoria", MAX_NOME);
+        TipoCategoria tipoCategoria = requireValue(tipo, "Tipo da categoria");
+        String descricaoNormalizada = normalizeOptionalText(descricao, "Descricao da categoria", MAX_DESCRICAO);
+
+        if (categoriaDAO.nomeETipoExistem(idUsuario, nomeNormalizado, tipoCategoria)) {
+            throw new RegraNegocioException(MENSAGEM_DUPLICIDADE);
+        }
+
+        Categoria categoria = new Categoria();
+        categoria.setUsuarioId(idUsuario);
+        categoria.setNome(nomeNormalizado);
+        categoria.setTipo(tipoCategoria);
+        categoria.setDescricao(descricaoNormalizada);
+        categoria.setAtivo(true);
+
+        try {
+            categoriaDAO.inserir(categoria);
+            return categoria;
+        } catch (SQLException exception) {
+            if (isDuplicateKey(exception)) {
+                throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
+            }
+            throw exception;
+        }
+    }
+
+    private List<Categoria> listarPorUsuario(Long usuarioId) throws SQLException {
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        return categoriaDAO.listarPorUsuario(idUsuario);
+    }
+
+    private Categoria atualizar(Long categoriaId, Long usuarioId, String nome, TipoCategoria tipo, String descricao)
+            throws SQLException {
+        Long idCategoria = requireId(categoriaId, "ID da categoria");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        String nomeNormalizado = normalizeRequiredText(nome, "Nome da categoria", MAX_NOME);
+        TipoCategoria tipoCategoria = requireValue(tipo, "Tipo da categoria");
+        String descricaoNormalizada = normalizeOptionalText(descricao, "Descricao da categoria", MAX_DESCRICAO);
+
+        Categoria categoriaExistente = buscarCategoriaExistente(idCategoria, idUsuario);
+        if (categoriaDAO.nomeETipoExistemParaOutraCategoria(idUsuario, nomeNormalizado, tipoCategoria, idCategoria)) {
+            throw new RegraNegocioException(MENSAGEM_DUPLICIDADE);
+        }
+
+        if (Objects.equals(categoriaExistente.getNome(), nomeNormalizado)
+                && categoriaExistente.getTipo() == tipoCategoria
+                && Objects.equals(categoriaExistente.getDescricao(), descricaoNormalizada)) {
+            return categoriaExistente;
+        }
+
+        categoriaExistente.setNome(nomeNormalizado);
+        categoriaExistente.setTipo(tipoCategoria);
+        categoriaExistente.setDescricao(descricaoNormalizada);
+
+        try {
+            categoriaDAO.atualizar(categoriaExistente);
+            return categoriaExistente;
+        } catch (SQLException exception) {
+            if (isDuplicateKey(exception)) {
+                throw new RegraNegocioException(MENSAGEM_DUPLICIDADE, exception);
+            }
+            throw exception;
+        }
+    }
+
+    private void alterarStatus(Long categoriaId, Long usuarioId, boolean ativo) throws SQLException {
+        Long idCategoria = requireId(categoriaId, "ID da categoria");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        Categoria categoriaExistente = buscarCategoriaExistente(idCategoria, idUsuario);
+        if (categoriaExistente.isAtivo() == ativo) {
+            return;
+        }
+
+        categoriaDAO.atualizarStatus(idCategoria, idUsuario, ativo);
+    }
+
+    private void excluir(Long categoriaId, Long usuarioId) throws SQLException {
+        Long idCategoria = requireId(categoriaId, "ID da categoria");
+        Long idUsuario = requireId(usuarioId, "ID do usuario");
+        buscarCategoriaExistente(idCategoria, idUsuario);
+
+        try {
+            categoriaDAO.excluir(idCategoria, idUsuario);
+        } catch (SQLException exception) {
+            if (isForeignKeyRestriction(exception)) {
+                throw new RegraNegocioException(
+                        "A categoria nao pode ser excluida porque possui transacoes vinculadas.",
+                        exception
+                );
+            }
+            throw exception;
+        }
+    }
+
+    private Categoria buscarCategoriaExistente(Long categoriaId, Long usuarioId) throws SQLException {
+        return categoriaDAO.buscarPorId(categoriaId, usuarioId)
+                .orElseThrow(() -> new RegraNegocioException("Categoria nao encontrada."));
+    }
+
+    private Long requireId(Long valor, String nomeCampo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+        if (valor <= 0) {
+            throw new ValidacaoException(nomeCampo + " deve ser maior que zero.");
+        }
+        return valor;
+    }
+
+    private <T> T requireValue(T valor, String nomeCampo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+        return valor;
+    }
+
+    private String normalizeRequiredText(String valor, String nomeCampo, int tamanhoMaximo) {
+        if (valor == null) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+
+        String normalizado = valor.trim();
+        if (normalizado.isEmpty()) {
+            throw new ValidacaoException(nomeCampo + " e obrigatorio.");
+        }
+
+        if (normalizado.length() > tamanhoMaximo) {
+            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
+        }
+
+        return normalizado;
+    }
+
+    private String normalizeOptionalText(String valor, String nomeCampo, int tamanhoMaximo) {
+        if (valor == null) {
+            return null;
+        }
+
+        String normalizado = valor.trim();
+        if (normalizado.isEmpty()) {
+            return null;
+        }
+
+        if (normalizado.length() > tamanhoMaximo) {
+            throw new ValidacaoException(nomeCampo + " deve ter no maximo " + tamanhoMaximo + " caracteres.");
+        }
+
+        return normalizado;
+    }
+
+    private boolean isDuplicateKey(SQLException exception) {
+        return exception != null && exception.getErrorCode() == DUPLICATE_KEY_ERROR_CODE;
+    }
+
+    private boolean isForeignKeyRestriction(SQLException exception) {
+        return exception != null && exception.getErrorCode() == FOREIGN_KEY_RESTRICT_ERROR_CODE;
     }
 
     private record CategoriaResultado(List<Categoria> categorias, String mensagemSucesso) {

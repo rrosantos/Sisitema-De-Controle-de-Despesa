@@ -26,11 +26,13 @@ Aplicacao desktop em Java 21 com Swing, JDBC e MySQL para controle de receitas, 
 Camadas principais:
 
 - `view`: renderizacao Swing, dialogs e componentes reutilizaveis.
-- `controller`: fluxo da interface, navegacao e tarefas assincronas.
-- `service`: regras de negocio, validacoes e coordenacao transacional.
+- `controller`: fluxo da interface, regras de negocio, navegacao e tarefas assincronas.
 - `dao`: persistencia JDBC com `PreparedStatement` e `try-with-resources`.
 - `model` e `dto`: entidades, enums e objetos de transferencia.
-- `config`, `database`, `session` e `security`: configuracao, conexao, sessao e senha.
+- `util`, `config`, `database`, `session` e `security`: utilitarios, configuracao, conexao, sessao e senha.
+
+Arquitetura atual: `View -> Controller -> DAO -> Banco de Dados`.
+As Views exibem dados e capturam interacoes, os Controllers coordenam interface e regras, os DAOs realizam persistencia e os Models representam as entidades. Nao existe mais camada `service`.
 
 ## Requisitos
 
@@ -141,7 +143,6 @@ src/
     exception/
     model/
     security/
-    service/
     session/
     util/
     view/

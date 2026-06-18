@@ -12,14 +12,6 @@ import br.com.controledespesas.dao.UsuarioDAO;
 import br.com.controledespesas.database.ConnectionProvider;
 import br.com.controledespesas.database.DatabaseConnection;
 import br.com.controledespesas.security.PasswordHasher;
-import br.com.controledespesas.service.AutenticacaoService;
-import br.com.controledespesas.service.CategoriaService;
-import br.com.controledespesas.service.CofrinhoService;
-import br.com.controledespesas.service.ContaService;
-import br.com.controledespesas.service.DashboardService;
-import br.com.controledespesas.service.MovimentacaoCofrinhoService;
-import br.com.controledespesas.service.TransacaoService;
-import br.com.controledespesas.service.UsuarioService;
 import br.com.controledespesas.session.SessaoUsuario;
 
 public class ApplicationContext {
@@ -34,14 +26,6 @@ public class ApplicationContext {
     private final MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO;
     private final PasswordHasher passwordHasher;
     private final SessaoUsuario sessaoUsuario;
-    private final UsuarioService usuarioService;
-    private final AutenticacaoService autenticacaoService;
-    private final CategoriaService categoriaService;
-    private final ContaService contaService;
-    private final TransacaoService transacaoService;
-    private final DashboardService dashboardService;
-    private final CofrinhoService cofrinhoService;
-    private final MovimentacaoCofrinhoService movimentacaoCofrinhoService;
     private final AsyncTaskExecutor asyncTaskExecutor;
 
     public ApplicationContext() {
@@ -55,52 +39,11 @@ public class ApplicationContext {
         this.movimentacaoCofrinhoDAO = new MovimentacaoCofrinhoDAO();
         this.passwordHasher = new PasswordHasher();
         this.sessaoUsuario = new SessaoUsuario();
-        this.usuarioService = new UsuarioService(usuarioDAO, passwordHasher);
-        this.autenticacaoService = new AutenticacaoService(usuarioDAO, passwordHasher, sessaoUsuario);
-        this.categoriaService = new CategoriaService(categoriaDAO);
-        this.contaService = new ContaService(contaDAO);
-        this.transacaoService = new TransacaoService(transacaoDAO, categoriaDAO, contaDAO, connectionProvider);
-        this.dashboardService = new DashboardService(dashboardDAO);
-        this.cofrinhoService = new CofrinhoService(cofrinhoDAO, movimentacaoCofrinhoDAO, connectionProvider);
-        this.movimentacaoCofrinhoService =
-                new MovimentacaoCofrinhoService(movimentacaoCofrinhoDAO, cofrinhoDAO, connectionProvider);
         this.asyncTaskExecutor = new SwingWorkerAsyncTaskExecutor();
     }
 
     public ConnectionProvider getConnectionProvider() {
         return connectionProvider;
-    }
-
-    public UsuarioService getUsuarioService() {
-        return usuarioService;
-    }
-
-    public AutenticacaoService getAutenticacaoService() {
-        return autenticacaoService;
-    }
-
-    public CategoriaService getCategoriaService() {
-        return categoriaService;
-    }
-
-    public ContaService getContaService() {
-        return contaService;
-    }
-
-    public TransacaoService getTransacaoService() {
-        return transacaoService;
-    }
-
-    public CofrinhoService getCofrinhoService() {
-        return cofrinhoService;
-    }
-
-    public DashboardService getDashboardService() {
-        return dashboardService;
-    }
-
-    public MovimentacaoCofrinhoService getMovimentacaoCofrinhoService() {
-        return movimentacaoCofrinhoService;
     }
 
     public SessaoUsuario getSessaoUsuario() {
@@ -109,6 +52,14 @@ public class ApplicationContext {
 
     public AsyncTaskExecutor getAsyncTaskExecutor() {
         return asyncTaskExecutor;
+    }
+
+    public UsuarioDAO getUsuarioDAO() {
+        return usuarioDAO;
+    }
+
+    public PasswordHasher getPasswordHasher() {
+        return passwordHasher;
     }
 
     public CategoriaDAO getCategoriaDAO() {

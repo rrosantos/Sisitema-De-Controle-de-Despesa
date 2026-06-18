@@ -1,14 +1,14 @@
 package br.com.controledespesas.controller;
 
 import br.com.controledespesas.exception.AutenticacaoException;
+import br.com.controledespesas.dao.CategoriaDAO;
+import br.com.controledespesas.dao.CofrinhoDAO;
+import br.com.controledespesas.dao.ContaDAO;
+import br.com.controledespesas.dao.DashboardDAO;
+import br.com.controledespesas.dao.MovimentacaoCofrinhoDAO;
+import br.com.controledespesas.dao.TransacaoDAO;
+import br.com.controledespesas.database.ConnectionProvider;
 import br.com.controledespesas.model.Usuario;
-import br.com.controledespesas.service.AutenticacaoService;
-import br.com.controledespesas.service.CategoriaService;
-import br.com.controledespesas.service.CofrinhoService;
-import br.com.controledespesas.service.ContaService;
-import br.com.controledespesas.service.DashboardService;
-import br.com.controledespesas.service.MovimentacaoCofrinhoService;
-import br.com.controledespesas.service.TransacaoService;
 import br.com.controledespesas.session.SessaoUsuario;
 import br.com.controledespesas.view.CofrinhoPanel;
 import br.com.controledespesas.view.CategoriaPanel;
@@ -31,7 +31,6 @@ public class MainController {
     static final String PAINEL_CONTAS = "contas";
     static final String PAINEL_COFRINHOS = "cofrinhos";
 
-    private final AutenticacaoService autenticacaoService;
     private final SessaoUsuario sessaoUsuario;
     private final MainView mainView;
     private final ApplicationController applicationController;
@@ -48,28 +47,28 @@ public class MainController {
 
     private boolean componentesRegistrados;
 
-    public MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
-                          TransacaoService transacaoService, CategoriaService categoriaService, ContaService contaService,
-                          CofrinhoService cofrinhoService, MovimentacaoCofrinhoService movimentacaoCofrinhoService,
-                          DashboardService dashboardService,
+    public MainController(SessaoUsuario sessaoUsuario, TransacaoDAO transacaoDAO,
+                          CategoriaDAO categoriaDAO, ContaDAO contaDAO, DashboardDAO dashboardDAO,
+                          ConnectionProvider connectionProvider,
+                          CofrinhoDAO cofrinhoDAO, MovimentacaoCofrinhoDAO movimentacaoCofrinhoDAO,
                           AsyncTaskExecutor asyncTaskExecutor, MainView mainView,
                           ApplicationController applicationController) {
-        this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.mainView = Objects.requireNonNull(mainView, "mainView nao pode ser nulo.");
         this.applicationController =
                 Objects.requireNonNull(applicationController, "applicationController nao pode ser nulo.");
-        Objects.requireNonNull(transacaoService, "transacaoService nao pode ser nulo.");
-        Objects.requireNonNull(categoriaService, "categoriaService nao pode ser nulo.");
-        Objects.requireNonNull(contaService, "contaService nao pode ser nulo.");
-        Objects.requireNonNull(cofrinhoService, "cofrinhoService nao pode ser nulo.");
-        Objects.requireNonNull(movimentacaoCofrinhoService, "movimentacaoCofrinhoService nao pode ser nulo.");
-        Objects.requireNonNull(dashboardService, "dashboardService nao pode ser nulo.");
+        Objects.requireNonNull(transacaoDAO, "transacaoDAO nao pode ser nulo.");
+        Objects.requireNonNull(categoriaDAO, "categoriaDAO nao pode ser nulo.");
+        Objects.requireNonNull(contaDAO, "contaDAO nao pode ser nulo.");
+        Objects.requireNonNull(dashboardDAO, "dashboardDAO nao pode ser nulo.");
+        Objects.requireNonNull(connectionProvider, "connectionProvider nao pode ser nulo.");
+        Objects.requireNonNull(cofrinhoDAO, "cofrinhoDAO nao pode ser nulo.");
+        Objects.requireNonNull(movimentacaoCofrinhoDAO, "movimentacaoCofrinhoDAO nao pode ser nulo.");
         Objects.requireNonNull(asyncTaskExecutor, "asyncTaskExecutor nao pode ser nulo.");
 
         this.inicioPanel = new InicioPanel();
         this.dashboardController = new DashboardController(
-                dashboardService,
+                dashboardDAO,
                 sessaoUsuario,
                 inicioPanel,
                 asyncTaskExecutor
@@ -78,9 +77,10 @@ public class MainController {
         TransacaoPanel transacaoPanelConcreto = new TransacaoPanel();
         this.transacaoPanel = transacaoPanelConcreto;
         this.transacaoController = new TransacaoController(
-                transacaoService,
-                categoriaService,
-                contaService,
+                transacaoDAO,
+                categoriaDAO,
+                contaDAO,
+                connectionProvider,
                 sessaoUsuario,
                 transacaoPanelConcreto,
                 asyncTaskExecutor,
@@ -90,18 +90,19 @@ public class MainController {
         CategoriaPanel categoriaPanelConcreto = new CategoriaPanel();
         this.categoriaPanel = categoriaPanelConcreto;
         this.categoriaController =
-                new CategoriaController(categoriaService, sessaoUsuario, categoriaPanelConcreto, asyncTaskExecutor);
+                new CategoriaController(categoriaDAO, sessaoUsuario, categoriaPanelConcreto, asyncTaskExecutor);
 
         ContaPanel contaPanelConcreto = new ContaPanel();
         this.contaPanel = contaPanelConcreto;
         this.contaController =
-                new ContaController(contaService, sessaoUsuario, contaPanelConcreto, asyncTaskExecutor, dashboardController);
+                new ContaController(contaDAO, sessaoUsuario, contaPanelConcreto, asyncTaskExecutor, dashboardController);
 
         CofrinhoPanel cofrinhoPanelConcreto = new CofrinhoPanel();
         this.cofrinhoPanel = cofrinhoPanelConcreto;
         this.cofrinhoController = new CofrinhoController(
-                cofrinhoService,
-                movimentacaoCofrinhoService,
+                cofrinhoDAO,
+                movimentacaoCofrinhoDAO,
+                connectionProvider,
                 sessaoUsuario,
                 cofrinhoPanelConcreto,
                 asyncTaskExecutor,
@@ -109,14 +110,12 @@ public class MainController {
         );
     }
 
-    MainController(AutenticacaoService autenticacaoService, SessaoUsuario sessaoUsuario,
-                   MainView mainView, ApplicationController applicationController,
+    MainController(SessaoUsuario sessaoUsuario, MainView mainView, ApplicationController applicationController,
                    InicioPanel inicioPanel, JPanel transacaoPanel, JPanel categoriaPanel, JPanel contaPanel,
                    JPanel cofrinhoPanel,
                    DashboardController dashboardController,
                    TransacaoController transacaoController, CategoriaController categoriaController,
                    ContaController contaController, CofrinhoController cofrinhoController) {
-        this.autenticacaoService = Objects.requireNonNull(autenticacaoService, "autenticacaoService nao pode ser nulo.");
         this.sessaoUsuario = Objects.requireNonNull(sessaoUsuario, "sessaoUsuario nao pode ser nulo.");
         this.mainView = Objects.requireNonNull(mainView, "mainView nao pode ser nulo.");
         this.applicationController =
@@ -200,7 +199,7 @@ public class MainController {
     }
 
     public void realizarLogout() {
-        autenticacaoService.sair();
+        sessaoUsuario.encerrar();
         mainView.fechar();
         applicationController.realizarLogout();
     }

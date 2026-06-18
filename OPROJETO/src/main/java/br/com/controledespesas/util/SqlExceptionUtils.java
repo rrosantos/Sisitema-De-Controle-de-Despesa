@@ -1,25 +1,25 @@
-package br.com.controledespesas.service;
+package br.com.controledespesas.util;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
-final class ServiceSqlUtils {
+public final class SqlExceptionUtils {
 
     private static final int DUPLICATE_KEY_ERROR_CODE = 1062;
     private static final int FOREIGN_KEY_RESTRICT_ERROR_CODE = 1451;
 
-    private ServiceSqlUtils() {
+    private SqlExceptionUtils() {
     }
 
-    static boolean isDuplicateKey(SQLException exception) {
+    public static boolean isDuplicateKey(SQLException exception) {
         return exception != null && exception.getErrorCode() == DUPLICATE_KEY_ERROR_CODE;
     }
 
-    static boolean isForeignKeyRestriction(SQLException exception) {
+    public static boolean isForeignKeyRestriction(SQLException exception) {
         return exception != null && exception.getErrorCode() == FOREIGN_KEY_RESTRICT_ERROR_CODE;
     }
 
-    static void rollback(Connection connection, Throwable cause) {
+    public static void rollback(Connection connection, Throwable cause) {
         if (connection == null) {
             return;
         }
@@ -33,7 +33,8 @@ final class ServiceSqlUtils {
         }
     }
 
-    static void restoreAutoCommit(Connection connection, boolean originalAutoCommit, Throwable cause) throws SQLException {
+    public static void restoreAutoCommit(Connection connection, boolean originalAutoCommit, Throwable cause)
+            throws SQLException {
         if (connection == null) {
             return;
         }
